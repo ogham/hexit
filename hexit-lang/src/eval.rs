@@ -69,11 +69,33 @@ impl Value<'_> {
         }
     }
 
+    fn to_two_variable_bytes(self, endianify: impl Fn(u16) -> [u8; 2]) -> Self {
+        let bytes = match self {
+            Self::Byte(b)       => endianify(u16::from(b)),
+            Self::Sixteen(o2)   => endianify(u16::from(o2)),
+            Self::RawNumber(s)  => endianify(u16::from_str_radix(s, 10).unwrap()),
+            _                   => todo!("val: {:?}", self),
+        };
+
+        Value::VariableBytes(bytes.to_vec())
+    }
+
     fn to_four_variable_bytes(self, endianify: impl Fn(u32) -> [u8; 4]) -> Self {
         let bytes = match self {
             Self::Byte(b)       => endianify(u32::from(b)),
             Self::Sixteen(o2)   => endianify(u32::from(o2)),
             Self::RawNumber(s)  => endianify(u32::from_str_radix(s, 10).unwrap()),
+            _                   => todo!("val: {:?}", self),
+        };
+
+        Value::VariableBytes(bytes.to_vec())
+    }
+
+    fn to_eight_variable_bytes(self, endianify: impl Fn(u64) -> [u8; 8]) -> Self {
+        let bytes = match self {
+            Self::Byte(b)       => endianify(u64::from(b)),
+            Self::Sixteen(o2)   => endianify(u64::from(o2)),
+            Self::RawNumber(s)  => endianify(u64::from_str_radix(s, 10).unwrap()),
             _                   => todo!("val: {:?}", self),
         };
 
@@ -143,6 +165,18 @@ impl<'consts> Evaluator<'consts> {
         use std::iter::once;
 
         match name {
+            FunctionName::MultiByte(MultiByteType::Be16) => {
+                let arg = only_arg(args)?;
+                let val = self.evaluate_exp(arg)?;
+                Ok(val.to_two_variable_bytes(u16::to_be_bytes))
+            }
+
+            FunctionName::MultiByte(MultiByteType::Le16) => {
+                let arg = only_arg(args)?;
+                let val = self.evaluate_exp(arg)?;
+                Ok(val.to_two_variable_bytes(u16::to_le_bytes))
+            }
+
             FunctionName::MultiByte(MultiByteType::Be32) => {
                 let arg = only_arg(args)?;
                 let val = self.evaluate_exp(arg)?;
@@ -153,6 +187,18 @@ impl<'consts> Evaluator<'consts> {
                 let arg = only_arg(args)?;
                 let val = self.evaluate_exp(arg)?;
                 Ok(val.to_four_variable_bytes(u32::to_le_bytes))
+            }
+
+            FunctionName::MultiByte(MultiByteType::Be64) => {
+                let arg = only_arg(args)?;
+                let val = self.evaluate_exp(arg)?;
+                Ok(val.to_eight_variable_bytes(u64::to_be_bytes))
+            }
+
+            FunctionName::MultiByte(MultiByteType::Le64) => {
+                let arg = only_arg(args)?;
+                let val = self.evaluate_exp(arg)?;
+                Ok(val.to_eight_variable_bytes(u64::to_le_bytes))
             }
 
             FunctionName::Repeat(amount) => {
