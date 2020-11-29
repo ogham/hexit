@@ -37,6 +37,11 @@ impl ConstantsTable {
 
 impl ConstantsTable {
 
+    /// Creates a new empty constants table.
+    pub fn empty() -> Self {
+        Self { map: HashMap::new() }
+    }
+
     /// Creates a new constants table using the built-in set of data.
     pub fn builtin_set() -> Self {
         let mut map = HashMap::with_capacity(50);

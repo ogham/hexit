@@ -24,8 +24,15 @@ fn eval<'src>(exps: impl IntoIterator<Item=Exp<'src>>, constants: &ConstantsTabl
         let val = evaluator.evaluate_exp(exp)?;
 
         if let Value::RawNumber(s) = val {
-            let v = s.parse().unwrap();
-            bytes.push(v);
+            match s.parse() {
+                Ok(v) => {
+                    bytes.push(v)
+                }
+                Err(e) => {
+                    warn!("Parse error: {}", e);
+                    return Err(Error::TopLevelBigDecimal(s))
+                }
+            }
         }
         else {
             bytes.extend(val.eval_to_bytes());
@@ -210,5 +217,47 @@ impl<'src> fmt::Display for Error<'src> {
             Self::TooMuchOutput            => write!(f, "Too much output!"),
             Self::TooMuchRecursion         => write!(f, "Nested too deeply!"),
         }
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn nothing() {
+        let exps = vec![];
+        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
+                   Ok(vec![]));
+    }
+
+    #[test]
+    fn one_top_level_byte() {
+        let exps = vec![ Exp::Char(0x73) ];
+        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
+                   Ok(vec![ 0x73 ]));
+    }
+
+    #[test]
+    fn top_level_decimal_73() {
+        let exps = vec![ Exp::Dec("73") ];
+        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
+                   Ok(vec![ 73 ]));
+    }
+
+    #[test]
+    fn top_level_decimal_255() {
+        let exps = vec![ Exp::Dec("255") ];
+        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
+                   Ok(vec![ 255 ]));
+    }
+
+    #[test]
+    fn top_level_decimal_256() {
+        let exps = vec![ Exp::Dec("256") ];
+        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
+                   Err(Error::TopLevelBigDecimal("256")));
     }
 }
