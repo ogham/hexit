@@ -1,0 +1,17 @@
+[[cmd]]
+shell = "hexit --wibble"
+stdout = { empty = true }
+stderr = { regex = "wibble" }
+status = 3
+
+[[cmd]]
+shell = "hexit missing-file.hexit"
+stdout = { empty = true }
+stderr = { string = "missing-file.hexit: No such file or directory" }
+status = 1
+
+[[cmd]]
+shell = "hexit -c missing-file.hexit"
+stdout = { empty = true }
+stderr = { string = "missing-file.hexit: No such file or directory" }
+status = 1

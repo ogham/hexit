@@ -1,0 +1,41 @@
+# length passes
+
+[[cmd]]
+shell = "hexit -e 'AB34' --verify-length 2"
+status = 0
+
+[[cmd]]
+shell = "hexit -e '' --verify-length 0"
+status = 0
+
+
+# length fails
+
+[[cmd]]
+shell = "hexit -e 'AB34' --verify-length 0"
+stderr = { string = "0" }
+status = 4
+
+[[cmd]]
+shell = "hexit -e '' --verify-length 2"
+stderr = { string = "2" }
+status = 4
+
+
+# boundary passes
+
+[[cmd]]
+shell = "hexit -e 'AB34EF78' --verify-boundary 2"
+status = 0
+
+[[cmd]]
+shell = "hexit -e 'AB34EF78' --verify-boundary 4"
+status = 0
+
+
+# boundary fails
+
+[[cmd]]
+shell = "hexit -e 'AB34EF78' --verify-boundary 3"
+stderr = { string = "multiple of 3" }
+status = 4

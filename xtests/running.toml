@@ -1,0 +1,29 @@
+[[cmd]]
+shell = "hexit ../examples/png.hexit"
+status = 0
+#stdout = { empty = false }
+stderr = { empty = true }
+
+
+# syntax checking
+
+[[cmd]]
+shell = "hexit -c ../examples/png.hexit"
+status = 0
+stdout = { empty = false }
+stderr = { empty = true }
+
+[[cmd]]
+shell = "hexit -c ../Justfile"
+status = 2
+stdout = { empty = false }
+stderr = { empty = true }
+
+
+# list constants
+
+[[cmd]]
+shell = "hexit --list-constants"
+status = 0
+stdout = { empty = false }
+stderr = { empty = true }

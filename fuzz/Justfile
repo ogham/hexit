@@ -1,0 +1,37 @@
+all: clean run crashes
+
+# removes any fuzz log files
+@clean:
+    rm -fv artifacts/fuzz_hexit/* fuzz-*.log
+
+# runs fuzzing on the hexit-lang crate
+@run:
+    cargo +nightly fuzz --version
+    cargo +nightly fuzz run fuzz_hexit -- -only_ascii=1 -jobs=`nproc` -workers=`nproc` -runs=69105
+
+# runs fuzzing on the hexit-lang crate (for longer)
+@run-long:
+    cargo +nightly fuzz --version
+    cargo +nightly fuzz run fuzz_hexit -- -jobs=`nproc` -workers=`nproc` -runs=691050
+
+# prints out the data that caused crashes during fuzzing as hexadecimal
+crashes:
+    #!/bin/bash
+    if find artifacts/fuzz_hexit -prune -type d -empty | grep artifacts/fuzz_hexit >/dev/null; then
+        echo "No crashes"
+    else
+        for crash in artifacts/fuzz_hexit/*; do
+            echo
+            echo $crash
+            hexyl $crash
+        done
+    fi
+
+# prints out 5 random samples from the corpus
+sample:
+    #!/bin/bash
+    for f in $(find corpus/fuzz_hexit | sort -R | head -5); do
+        echo -e "\n\033[4m$f:\033[0m"
+        hexyl $f
+        ../target/debug/hexit - <$f
+    done

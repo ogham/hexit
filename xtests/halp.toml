@@ -1,0 +1,49 @@
+[[cmd]]
+shell = "hexit --help"
+stdout = { string = "hexit ●" }
+stderr = { empty = true }
+status = 0
+
+[[cmd]]
+shell = "hexit --help --color=automatic"
+stdout = { string = "hexit ●" }
+stderr = { empty = true }
+status = 0
+
+[[cmd]]
+shell = "hexit --help --colour=always"
+stdout = { string = "hexit \u001B[1;35m●\u001B[0m" }
+stderr = { empty = true }
+status = 0
+
+[[cmd]]
+shell = "hexit --help --color=never"
+stdout = { string = "hexit ●" }
+stderr = { empty = true }
+status = 0
+
+
+
+[[cmd]]
+shell = "hexit --version"
+stdout = { string = "hexit ●" }
+stderr = { empty = true }
+status = 0
+
+[[cmd]]
+shell = "hexit --version --colour=automatic"
+stdout = { string = "hexit ●" }
+stderr = { empty = true }
+status = 0
+
+[[cmd]]
+shell = "hexit --version --color=always"
+stdout = { string = "hexit \u001B[1;35m●\u001B[0m" }
+stderr = { empty = true }
+status = 0
+
+[[cmd]]
+shell = "hexit --version --colour=never"
+stdout = { string = "hexit ●" }
+stderr = { empty = true }
+status = 0

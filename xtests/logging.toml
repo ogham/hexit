@@ -1,0 +1,11 @@
+[[cmd]]
+environment = { "HEXIT_DEBUG" = "1" }
+shell = "hexit ../examples/gzip.hexit"
+status = 0
+stderr = { string = "DEBUG" }
+
+[[cmd]]
+environment = { "HEXIT_DEBUG" = "trace" }
+shell = "hexit ../examples/gzip.hexit"
+status = 0
+stderr = { string = "TRACE" }

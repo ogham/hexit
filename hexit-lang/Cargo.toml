@@ -1,0 +1,26 @@
+[package]
+name = "hexit-lang"
+
+authors = ["Benjamin Sago <ogham@bsago.me>"]
+edition = "2018"
+license = "CC0-1.0/MIT"
+publish = false
+version = "0.1.0-pre"
+
+
+[features]
+with_mutagen = ["mutagen"]  # needs nightly
+
+[dependencies]
+
+# iso 8601 string parsing
+humantime = "2.0"
+
+# logging
+log = "0.4"
+
+# mutation testing
+mutagen = { git = "https://github.com/llogiq/mutagen", optional = true }
+
+[dev-dependencies]
+pretty_assertions = "0.6"

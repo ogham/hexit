@@ -1,0 +1,9 @@
+Marker:    x12(FF)
+Length:    be32[29]
+Type:      BGP_OPEN
+Version:   04
+ASN:       le32[12345]
+Hold time: be32[180]
+
+Identifier: [192.168.0.1]
+Optional params: 00

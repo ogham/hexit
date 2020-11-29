@@ -1,0 +1,9 @@
+# Rust
+/target
+
+# Fuzzing
+/fuzz/target/
+/fuzz/corpus/
+/fuzz/artifacts/
+fuzz-*.log
+/tarpaulin-report.html

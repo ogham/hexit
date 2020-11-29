@@ -1,0 +1,23 @@
+[package]
+name = "hexit-fuzz"
+version = "0.0.0"
+authors = ["Automatically generated"]
+publish = false
+edition = "2018"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.3"
+
+[dependencies.hexit-lang]
+path = "../hexit-lang"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "fuzz_hexit"
+path = "fuzz_targets/fuzz_hexit.rs"
