@@ -68,6 +68,17 @@ impl Value<'_> {
             }
         }
     }
+
+    fn to_four_variable_bytes(self, endianify: impl Fn(u32) -> [u8; 4]) -> Self {
+        let bytes = match self {
+            Self::Byte(b)       => endianify(u32::from(b)),
+            Self::Sixteen(o2)   => endianify(u32::from(o2)),
+            Self::RawNumber(s)  => endianify(u32::from_str_radix(s, 10).unwrap()),
+            _                   => todo!("val: {:?}", self),
+        };
+
+        Value::VariableBytes(bytes.to_vec())
+    }
 }
 
 
@@ -128,40 +139,20 @@ impl<'consts> Evaluator<'consts> {
         }
     }
 
-    fn run_function<'src>(&self, name: FunctionName, mut args: Vec<Exp<'src>>) -> Result<Value<'src>, Error<'src>> {
+    fn run_function<'src>(&self, name: FunctionName, args: Vec<Exp<'src>>) -> Result<Value<'src>, Error<'src>> {
         use std::iter::once;
 
         match name {
             FunctionName::MultiByte(MultiByteType::Be32) => {
-                if args.len() != 1 {
-                    return Err(Error::InvalidArgs);
-                }
-
-                let arg = args.remove(0);
+                let arg = only_arg(args)?;
                 let val = self.evaluate_exp(arg)?;
-
-                match val {
-                    Value::Byte(b)      => Ok(Value::VariableBytes(u32::from(b).to_be_bytes().to_vec())),
-                    Value::Sixteen(o2)  => Ok(Value::VariableBytes(u32::from(o2).to_be_bytes().to_vec())),
-                    Value::RawNumber(s) => Ok(Value::VariableBytes(u32::from_str_radix(s, 10).unwrap().to_be_bytes().to_vec())),
-                    _                   => todo!("val: {:?}", val)
-                }
+                Ok(val.to_four_variable_bytes(u32::to_be_bytes))
             }
 
             FunctionName::MultiByte(MultiByteType::Le32) => {
-                if args.len() != 1 {
-                    return Err(Error::InvalidArgs);
-                }
-
-                let arg = args.remove(0);
+                let arg = only_arg(args)?;
                 let val = self.evaluate_exp(arg)?;
-
-                match val {
-                    Value::Byte(b)      => Ok(Value::VariableBytes(u32::from(b).to_le_bytes().to_vec())),
-                    Value::Sixteen(o2)  => Ok(Value::VariableBytes(u32::from(o2).to_le_bytes().to_vec())),
-                    Value::RawNumber(s) => Ok(Value::VariableBytes(u32::from_str_radix(s, 10).unwrap().to_le_bytes().to_vec())),
-                    _                   => todo!("val: {:?}", val)
-                }
+                Ok(val.to_four_variable_bytes(u32::to_le_bytes))
             }
 
             FunctionName::Repeat(amount) => {
@@ -179,6 +170,17 @@ impl<'consts> Evaluator<'consts> {
                 todo!("Func: {:?}", name)
             }
         }
+    }
+}
+
+/// Returns the only argument in the vector if just one is present, or returns
+/// an “invalid arguments” error.
+fn only_arg<'src>(mut args: Vec<Exp<'src>>) -> Result<Exp<'src>, Error<'src>> {
+    if args.len() != 1 {
+        Err(Error::InvalidArgs)
+    }
+    else {
+        Ok(args.remove(0))
     }
 }
 
