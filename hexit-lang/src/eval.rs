@@ -77,7 +77,7 @@ impl<'src> Value<'src> {
                 endianify(u16::from(b))
             }
             Self::MultiByte(MultiByteValue::Sixteen(o2)) => {
-                endianify(u16::from(o2))
+                endianify(o2)
             }
             Self::MultiByte(MultiByteValue::RawNumber(s)) => {
                 endianify(u16::from_str_radix(s, 10).unwrap())
@@ -251,11 +251,11 @@ impl<'consts> Evaluator<'consts> {
 /// Returns the only argument in the vector if just one is present, or returns
 /// an “invalid arguments” error.
 fn only_arg<'src>(mut args: Vec<Exp<'src>>) -> Result<Exp<'src>, Error<'src>> {
-    if args.len() != 1 {
-        Err(Error::InvalidArgs)
+    if args.len() == 1 {
+        Ok(args.remove(0))
     }
     else {
-        Ok(args.remove(0))
+        Err(Error::InvalidArgs)
     }
 }
 
