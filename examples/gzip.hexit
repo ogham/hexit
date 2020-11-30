@@ -1,7 +1,7 @@
 Magic number: 1F 8B
 Method: GZIP_DEFLATE
 Flags: 00
-Time: [2017-12-31T21:36:45]
+Time: le32[2017-12-31T21:36:45]
 Compression flags: 00
 OS: GZIP_UNIX
 

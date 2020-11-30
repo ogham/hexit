@@ -9,3 +9,5 @@ environment = { "HEXIT_DEBUG" = "trace" }
 shell = "hexit ../examples/gzip.hexit"
 status = 0
 stderr = { string = "TRACE" }
+
+# these tests will fail if the gzip example stops being valid

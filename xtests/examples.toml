@@ -1,0 +1,11 @@
+[[cmd]]
+shell = "hexit -c ../examples/bgp.hexit"
+status = 0
+
+[[cmd]]
+shell = "hexit -c ../examples/gzip.hexit"
+status = 0
+
+[[cmd]]
+shell = "hexit -c ../examples/png.hexit"
+status = 0
