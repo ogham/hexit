@@ -170,6 +170,6 @@ pub struct UnknownConstant {
 
 impl fmt::Display for UnknownConstant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Unknown constant {:?}", self.name)
+        write!(f, "Unknown constant ‘{}’", self.name)
     }
 }
