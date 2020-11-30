@@ -71,7 +71,7 @@ impl<'src> Value<'src> {
         }
     }
 
-    fn to_two_variable_bytes(self, endianify: impl Fn(u16) -> [u8; 2]) -> Self {
+    fn to_two_variable_bytes(self, endianify: impl Fn(u16) -> [u8; 2]) -> Result<Self, Error<'src>> {
         let bytes = match self {
             Self::Byte(b) => {
                 endianify(u16::from(b))
@@ -80,14 +80,20 @@ impl<'src> Value<'src> {
                 endianify(o2)
             }
             Self::MultiByte(MultiByteValue::RawNumber(s)) => {
-                endianify(u16::from_str_radix(s, 10).unwrap())
+                match s.parse() {
+                    Ok(num) => endianify(num),
+                    Err(e) => {
+                        warn!("Parse error: {}", e);
+                        return Err(Error::TooBigDecimal(MultiByteValue::RawNumber(s)));
+                    }
+                }
             }
             _ => {
                 todo!("val: {:?}", self)
             }
         };
 
-        Value::VariableBytes(bytes.to_vec())
+        Ok(Value::VariableBytes(bytes.to_vec()))
     }
 
     fn to_four_variable_bytes(self, endianify: impl Fn(u32) -> [u8; 4]) -> Self {
@@ -197,13 +203,13 @@ impl<'consts> Evaluator<'consts> {
             FunctionName::MultiByte(MultiByteType::Be16) => {
                 let arg = only_arg(args)?;
                 let val = self.evaluate_exp(arg)?;
-                Ok(val.to_two_variable_bytes(u16::to_be_bytes))
+                val.to_two_variable_bytes(u16::to_be_bytes)
             }
 
             FunctionName::MultiByte(MultiByteType::Le16) => {
                 let arg = only_arg(args)?;
                 let val = self.evaluate_exp(arg)?;
-                Ok(val.to_two_variable_bytes(u16::to_le_bytes))
+                val.to_two_variable_bytes(u16::to_le_bytes)
             }
 
             FunctionName::MultiByte(MultiByteType::Be32) => {
@@ -287,12 +293,23 @@ pub enum Error<'src> {
 impl<'src> fmt::Display for Error<'src> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::TopLevelBigDecimal(dec)  => write!(f, "Decimal {:?} does not fit in one byte", dec),
-            Self::TooBigDecimal(dec)       => write!(f, "Decimal {:?} too big for target", dec),
+            Self::TopLevelBigDecimal(dec)  => write!(f, "{} does not fit in one byte", dec),
+            Self::TooBigDecimal(dec)       => write!(f, "{} is too big for target", dec),
             Self::UnknownConstant(uc)      => uc.fmt(f),
             Self::InvalidArgs              => write!(f, "Invalid argument count"),
             Self::TooMuchOutput            => write!(f, "Too much output!"),
             Self::TooMuchRecursion         => write!(f, "Nested too deeply!"),
+        }
+    }
+}
+
+impl<'src> fmt::Display for MultiByteValue<'src> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Sixteen(num)   => write!(f, "2-byte number ‘{}’", num),
+            Self::ThirtyTwo(num) => write!(f, "4-byte number ‘{}’", num),
+            Self::SixtyFour(num) => write!(f, "8-byte number ‘{}’", num),
+            Self::RawNumber(num) => write!(f, "Decimal number ‘{}’", num),
         }
     }
 }

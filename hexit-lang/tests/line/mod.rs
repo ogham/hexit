@@ -4,7 +4,9 @@ macro_rules! test_eval {
         fn $name() {
             let program = hexit_lang::Program::read($input).expect("Parsing failed");
             let constants = hexit_lang::ConstantsTable::builtin_set();
-            assert_eq!(program.run(constants, None), $result);
+
+            let result = program.run(constants, None).map_err(|e| e.to_string());
+            assert_eq!(result, $result);
         }
     };
 }
@@ -14,5 +16,5 @@ mod byte_tests;
 mod constant_tests;
 mod decimal_form_tests;
 mod form_tests;
-mod function_tests;
+mod repeat_tests;
 mod string_tests;
