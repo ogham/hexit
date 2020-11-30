@@ -27,6 +27,7 @@ test_eval!(be32_50:  "be32[50]"          => Ok(vec![ 0, 0, 0, 50 ]));
 test_eval!(be32_255: "be32[255]"         => Ok(vec![ 0, 0, 0, 255 ]));
 test_eval!(be32_256: "be32[256]"         => Ok(vec![ 0, 0, 1, 0 ]));
 test_eval!(be32_all: "be32[4294967295]"  => Ok(vec![ 255, 255, 255, 255 ]));
+test_eval!(be32_err: "be32[4294967296]"  => Err(String::from("Decimal number ‘4294967296’ is too big for target")));
 
 // le32 function
 test_eval!(le32_0:   "le32[0]"           => Ok(vec![ 0, 0, 0, 0 ]));
@@ -34,6 +35,7 @@ test_eval!(le32_50:  "le32[50]"          => Ok(vec![ 50, 0, 0, 0 ]));
 test_eval!(le32_255: "le32[255]"         => Ok(vec![ 255, 0, 0, 0 ]));
 test_eval!(le32_256: "le32[256]"         => Ok(vec![ 0, 1, 0, 0 ]));
 test_eval!(le32_all: "le32[4294967295]"  => Ok(vec![ 255, 255, 255, 255 ]));
+test_eval!(le32_err: "le32[4294967296]"  => Err(String::from("Decimal number ‘4294967296’ is too big for target")));
 
 // be64 function
 test_eval!(be64_0:   "be64[0]"                     => Ok(vec![ 0, 0, 0, 0, 0, 0, 0, 0 ]));
@@ -41,6 +43,7 @@ test_eval!(be64_50:  "be64[50]"                    => Ok(vec![ 0, 0, 0, 0, 0, 0,
 test_eval!(be64_255: "be64[255]"                   => Ok(vec![ 0, 0, 0, 0, 0, 0, 0, 255 ]));
 test_eval!(be64_256: "be64[256]"                   => Ok(vec![ 0, 0, 0, 0, 0, 0, 1, 0 ]));
 test_eval!(be64_all: "be64[18446744073709551615]"  => Ok(vec![ 255, 255, 255, 255, 255, 255, 255, 255 ]));
+test_eval!(be64_err: "be64[18446744073709551616]"  => Err(String::from("Decimal number ‘18446744073709551616’ is too big for target")));
 
 // le64 function
 test_eval!(le64_0:   "le64[0]"                     => Ok(vec![ 0, 0, 0, 0, 0, 0, 0, 0 ]));
@@ -48,3 +51,4 @@ test_eval!(le64_50:  "le64[50]"                    => Ok(vec![ 50, 0, 0, 0, 0, 0
 test_eval!(le64_255: "le64[255]"                   => Ok(vec![ 255, 0, 0, 0, 0, 0, 0, 0 ]));
 test_eval!(le64_256: "le64[256]"                   => Ok(vec![ 0, 1, 0, 0, 0, 0, 0, 0 ]));
 test_eval!(le64_all: "le64[18446744073709551615]"  => Ok(vec![ 255, 255, 255, 255, 255, 255, 255, 255 ]));
+test_eval!(le64_err: "le64[18446744073709551616]"  => Err(String::from("Decimal number ‘18446744073709551616’ is too big for target")));

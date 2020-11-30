@@ -96,7 +96,7 @@ impl<'src> Value<'src> {
         Ok(Value::VariableBytes(bytes.to_vec()))
     }
 
-    fn to_four_variable_bytes(self, endianify: impl Fn(u32) -> [u8; 4]) -> Self {
+    fn to_four_variable_bytes(self, endianify: impl Fn(u32) -> [u8; 4]) -> Result<Self, Error<'src>> {
         let bytes = match self {
             Self::Byte(b) => {
                 endianify(u32::from(b))
@@ -108,17 +108,23 @@ impl<'src> Value<'src> {
                 endianify(o4)
             }
             Self::MultiByte(MultiByteValue::RawNumber(s)) => {
-                endianify(u32::from_str_radix(s, 10).unwrap())
+                match s.parse() {
+                    Ok(num) => endianify(num),
+                    Err(e) => {
+                        warn!("Parse error: {}", e);
+                        return Err(Error::TooBigDecimal(MultiByteValue::RawNumber(s)));
+                    }
+                }
             }
             _ => {
                 todo!("val: {:?}", self)
             }
         };
 
-        Value::VariableBytes(bytes.to_vec())
+        Ok(Value::VariableBytes(bytes.to_vec()))
     }
 
-    fn to_eight_variable_bytes(self, endianify: impl Fn(u64) -> [u8; 8]) -> Self {
+    fn to_eight_variable_bytes(self, endianify: impl Fn(u64) -> [u8; 8]) -> Result<Self, Error<'src>> {
         let bytes = match self {
             Self::Byte(b) => {
                 endianify(u64::from(b))
@@ -127,14 +133,20 @@ impl<'src> Value<'src> {
                 endianify(u64::from(o2))
             }
             Self::MultiByte(MultiByteValue::RawNumber(s)) => {
-                endianify(u64::from_str_radix(s, 10).unwrap())
+                match s.parse() {
+                    Ok(num) => endianify(num),
+                    Err(e) => {
+                        warn!("Parse error: {}", e);
+                        return Err(Error::TooBigDecimal(MultiByteValue::RawNumber(s)));
+                    }
+                }
             }
             _ => {
                 todo!("val: {:?}", self)
             }
         };
 
-        Value::VariableBytes(bytes.to_vec())
+        Ok(Value::VariableBytes(bytes.to_vec()))
     }
 }
 
@@ -215,25 +227,25 @@ impl<'consts> Evaluator<'consts> {
             FunctionName::MultiByte(MultiByteType::Be32) => {
                 let arg = only_arg(args)?;
                 let val = self.evaluate_exp(arg)?;
-                Ok(val.to_four_variable_bytes(u32::to_be_bytes))
+                val.to_four_variable_bytes(u32::to_be_bytes)
             }
 
             FunctionName::MultiByte(MultiByteType::Le32) => {
                 let arg = only_arg(args)?;
                 let val = self.evaluate_exp(arg)?;
-                Ok(val.to_four_variable_bytes(u32::to_le_bytes))
+                val.to_four_variable_bytes(u32::to_le_bytes)
             }
 
             FunctionName::MultiByte(MultiByteType::Be64) => {
                 let arg = only_arg(args)?;
                 let val = self.evaluate_exp(arg)?;
-                Ok(val.to_eight_variable_bytes(u64::to_be_bytes))
+                val.to_eight_variable_bytes(u64::to_be_bytes)
             }
 
             FunctionName::MultiByte(MultiByteType::Le64) => {
                 let arg = only_arg(args)?;
                 let val = self.evaluate_exp(arg)?;
-                Ok(val.to_eight_variable_bytes(u64::to_le_bytes))
+                val.to_eight_variable_bytes(u64::to_le_bytes)
             }
 
             FunctionName::Repeat(amount) => {
