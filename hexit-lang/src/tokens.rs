@@ -1,3 +1,6 @@
+use crate::pos::Placed;
+
+
 /// A token that has been read from a source string.
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Token<'src> {
@@ -20,21 +23,4 @@ pub enum Token<'src> {
 
     /// A quoted string, such as `"vorbis"`.
     Quoted(Placed<&'src str>),
-}
-
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub struct Placed<T> {
-    pub contents: T,
-    pub line_number: usize,
-}
-
-
-pub trait At: Sized {
-    fn at(self, line_number: usize) -> Placed<Self>;
-}
-
-impl<T> At for T {
-    fn at(self, line_number: usize) -> Placed<Self> {
-        Placed { contents: self, line_number }
-    }
 }

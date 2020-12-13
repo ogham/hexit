@@ -2,7 +2,7 @@ use std::fmt;
 
 use log::*;
 
-use crate::{ast, lex, parse, tokens};
+use crate::{ast, lex, parse, pos, tokens};
 
 
 /// Reads a Hexit program into a vector of expressions, by splitting the input
@@ -47,7 +47,7 @@ impl<'src> fmt::Display for Error<'src> {
 }
 
 impl<'src> Error<'src> {
-    pub fn source_pos(&self) -> &tokens::Placed<&'src str> {
+    pub fn source_pos(&self) -> &pos::Placed<&'src str> {
         match self {
             Self::Lex(le)    => le.source_pos(),
             Self::Parse(pe)  => pe.source_pos(),
@@ -59,7 +59,7 @@ impl<'src> Error<'src> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tokens::At;
+    use crate::pos::At;
 
     #[test]
     fn empty() {

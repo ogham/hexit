@@ -32,6 +32,7 @@ mod constants;
 mod eval;
 mod lex;
 mod parse;
+mod pos;
 mod read;
 mod tokens;
 

@@ -1,7 +1,8 @@
 use std::fmt;
 use std::str::CharIndices;
 
-use crate::tokens::{Token, Placed};
+use crate::pos::Placed;
+use crate::tokens::Token;
 
 
 /// Tokenises a line of Hexit into a vector of tokens that contain references
@@ -273,7 +274,7 @@ impl<'src> Error<'src> {
 #[cfg(test)]
 mod test {
     use pretty_assertions::assert_eq;
-    use crate::tokens::At;
+    use crate::pos::At;
     use super::*;
 
     #[test]

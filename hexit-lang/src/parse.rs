@@ -4,7 +4,8 @@ use std::fmt;
 use log::*;
 
 use crate::ast::*;
-use crate::tokens::{Token, Placed, At};
+use crate::pos::{Placed, At};
+use crate::tokens::Token;
 
 
 /// Parses the given iterator of tokens into a vector of expressions, failing
@@ -425,7 +426,7 @@ impl<'src> Error<'src> {
 #[cfg(test)]
 mod test_parse_alphanums {
     use pretty_assertions::assert_eq;
-    use crate::tokens::At;
+    use crate::pos::At;
     use super::*;
 
     #[test]
@@ -499,7 +500,7 @@ mod test_parse_alphanums {
 #[cfg(test)]
 mod test_parse_form {
     use pretty_assertions::assert_eq;
-    use crate::tokens::At;
+    use crate::pos::At;
     use super::*;
 
     #[test]
@@ -537,7 +538,7 @@ mod test_parse_form {
 #[cfg(test)]
 mod test_parse_function_name {
     use pretty_assertions::assert_eq;
-    use crate::tokens::At;
+    use crate::pos::At;
     use super::*;
 
     #[test]
@@ -617,7 +618,7 @@ mod test_parse_function_name {
 #[cfg(test)]
 mod test_parse_quotes {
     use pretty_assertions::assert_eq;
-    use crate::tokens::At;
+    use crate::pos::At;
     use super::*;
 
     #[test]
@@ -655,7 +656,7 @@ mod test_parse_quotes {
 #[cfg(test)]
 mod test_edge_cases {
     use pretty_assertions::assert_eq;
-    use crate::tokens::At;
+    use crate::pos::At;
     use super::*;
 
     #[test]
