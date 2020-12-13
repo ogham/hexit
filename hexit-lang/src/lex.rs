@@ -231,7 +231,7 @@ impl<'src> Lexer<'src> {
 
             (c, _) => {
                 let char_position = Anchor { index, column_number };
-                let char_string = self.span(char_position, index + 1);
+                let char_string = self.span(char_position, index + c.len_utf8());
                 return Err(Error::UnknownCharacter(char_string));
             }
         }
@@ -334,6 +334,18 @@ mod test {
     fn stray() {
         assert_eq!(lex_source(0, "&"),
                    Err(Error::UnknownCharacter("&".at(0, 0))));
+    }
+
+    #[test]
+    fn utf8() {
+        assert_eq!(lex_source(0, "é"),
+                   Err(Error::UnknownCharacter("é".at(0, 0))));
+    }
+
+    #[test]
+    fn utf8_column() {
+        assert_eq!(lex_source(0, "Aé"),
+                   Err(Error::UnknownCharacter("é".at(0, 1))));
     }
 
     #[test]
