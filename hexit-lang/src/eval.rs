@@ -155,7 +155,7 @@ impl<'consts> Evaluator<'consts> {
                 Ok(Value::VariableBytes(result_bytes))
             }
 
-            FunctionName::Bitwise(BitwiseOperation::And) => {
+            FunctionName::Bitwise(bitwise_operator) => {
                 let mut iter = args.into_iter().map(|exp| self.evaluate_exp(exp));
                 let mut result = match iter.next() {
                     Some(val)  => val?,
@@ -163,25 +163,19 @@ impl<'consts> Evaluator<'consts> {
                 };
 
                 for next_val in iter {
-                    result = result.and(next_val?)?;
+                    let next_val = next_val?;
+                    result = result.apply_bitwise(next_val, bitwise_operator)?;
                 }
 
                 Ok(result)
             }
 
-            FunctionName::Bitwise(BitwiseOperation::Or) => {
-                todo!()
-            }
-
-            FunctionName::Bitwise(BitwiseOperation::Xor) => {
-                todo!()
-            }
-
-            FunctionName::Bitwise(BitwiseOperation::Not) => {
-                let arg = only_arg(args)?;
-                let val = self.evaluate_exp(arg)?;
-
-                todo!()
+            FunctionName::BitwiseNot => {
+                let mut bytes = eval(args, &self.constants, None, 4)?;
+                for b in &mut bytes {
+                    *b = !*b;
+                }
+                Ok(Value::VariableBytes(bytes))
             }
         }
     }
@@ -310,26 +304,30 @@ impl<'src> Value<'src> {
         Ok(Value::VariableBytes(bytes.to_vec()))
     }
 
-    fn and(self, next_val: Self) -> Result<Self, Error<'src>> {
+    fn apply_bitwise(self, next_val: Self, bitwise_op: BitwiseFold) -> Result<Self, Error<'src>> {
         match (self, next_val) {
             (Self::Byte(left),
              Self::Byte(right)) => {
-                Ok(Self::Byte(left & right))
+                let result = bitwise_op.apply_u8(left, right);
+                Ok(Self::Byte(result))
             }
 
             (Self::MultiByte(MultiByteValue::Sixteen(left)),
              Self::MultiByte(MultiByteValue::Sixteen(right))) => {
-                Ok(Self::MultiByte(MultiByteValue::Sixteen(left & right)))
+                let result = bitwise_op.apply_u16(left, right);
+                Ok(Self::MultiByte(MultiByteValue::Sixteen(result)))
             }
 
             (Self::MultiByte(MultiByteValue::ThirtyTwo(left)),
              Self::MultiByte(MultiByteValue::ThirtyTwo(right))) => {
-                Ok(Self::MultiByte(MultiByteValue::ThirtyTwo(left & right)))
+                let result = bitwise_op.apply_u32(left, right);
+                Ok(Self::MultiByte(MultiByteValue::ThirtyTwo(result)))
             }
 
             (Self::MultiByte(MultiByteValue::SixtyFour(left)),
              Self::MultiByte(MultiByteValue::SixtyFour(right))) => {
-                Ok(Self::MultiByte(MultiByteValue::SixtyFour(left & right)))
+                let result = bitwise_op.apply_u64(left, right);
+                Ok(Self::MultiByte(MultiByteValue::SixtyFour(result)))
             }
 
             (Self::MultiByte(MultiByteValue::RawNumber(left)),
@@ -347,7 +345,7 @@ impl<'src> Value<'src> {
 
                 let bytes = lefts.into_iter()
                                  .zip(rights.into_iter())
-                                 .map(|(l,r)| l & r)
+                                 .map(|(l,r)| bitwise_op.apply_u8(l, r))
                                  .collect();
 
                 Ok(Self::VariableBytes(bytes))
@@ -357,6 +355,41 @@ impl<'src> Value<'src> {
                 let message = format!("ANDing together two weird things ({:?} and {:?})", a, b);
                 return Err(Error::InvalidArgs(message));
             }
+        }
+    }
+}
+
+
+impl BitwiseFold {
+    fn apply_u8(self, left: u8, right: u8) -> u8 {
+        match self {
+            Self::And => left & right,
+            Self::Or  => left | right,
+            Self::Xor => left ^ right,
+        }
+    }
+
+    fn apply_u16(self, left: u16, right: u16) -> u16 {
+        match self {
+            Self::And => left & right,
+            Self::Or  => left | right,
+            Self::Xor => left ^ right,
+        }
+    }
+
+    fn apply_u32(self, left: u32, right: u32) -> u32 {
+        match self {
+            Self::And => left & right,
+            Self::Or  => left | right,
+            Self::Xor => left ^ right,
+        }
+    }
+
+    fn apply_u64(self, left: u64, right: u64) -> u64 {
+        match self {
+            Self::And => left & right,
+            Self::Or  => left | right,
+            Self::Xor => left ^ right,
         }
     }
 }

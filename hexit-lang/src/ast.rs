@@ -60,7 +60,8 @@ pub enum Exp<'src> {
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum FunctionName {
     MultiByte(MultiByteType),
-    Bitwise(BitwiseOperation),
+    Bitwise(BitwiseFold),
+    BitwiseNot,
     Repeat(RepeatAmount),
 }
 
@@ -77,11 +78,10 @@ pub enum MultiByteType {
 
 /// One of the bitwise function names.
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub enum BitwiseOperation {
+pub enum BitwiseFold {
     And,
     Or,
     Xor,
-    Not,
 }
 
 /// The amount that some bytes can be repeated in the repetition `FunctionName`.

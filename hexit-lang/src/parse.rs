@@ -297,9 +297,10 @@ fn parse_function_name(span: Placed<&'_ str>) -> Result<Option<FunctionName>, Er
             "le16" => Ok(Some(FunctionName::MultiByte(MultiByteType::Le16))),
             "le32" => Ok(Some(FunctionName::MultiByte(MultiByteType::Le32))),
             "le64" => Ok(Some(FunctionName::MultiByte(MultiByteType::Le64))),
-            "and"  => Ok(Some(FunctionName::Bitwise(BitwiseOperation::And))),
-            "or"   => Ok(Some(FunctionName::Bitwise(BitwiseOperation::Or))),
-            "xor"  => Ok(Some(FunctionName::Bitwise(BitwiseOperation::Xor))),
+            "and"  => Ok(Some(FunctionName::Bitwise(BitwiseFold::And))),
+            "or"   => Ok(Some(FunctionName::Bitwise(BitwiseFold::Or))),
+            "xor"  => Ok(Some(FunctionName::Bitwise(BitwiseFold::Xor))),
+            "not"  => Ok(Some(FunctionName::BitwiseNot)),
             _      => Ok(None),
         }
     }
