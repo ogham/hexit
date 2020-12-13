@@ -48,6 +48,7 @@ export HEXIT_DEBUG := ""
 # updates dependency versions, and checks for outdated ones
 @update-deps:
     cargo update
+    just fuzz/update-deps
     command -v cargo-outdated >/dev/null || (echo "cargo-outdated not installed" && exit 1)
     cargo outdated
 

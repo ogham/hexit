@@ -35,3 +35,7 @@ sample:
         hexyl $f
         ../target/debug/hexit - <$f
     done
+
+# updates dependency versions
+@update-deps:
+    cargo update

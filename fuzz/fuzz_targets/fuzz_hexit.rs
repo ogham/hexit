@@ -11,6 +11,6 @@ fuzz_target!(|data: &[u8]| {
 
     let _ = Program::read(string).map(|prog| {
         let constants = ConstantsTable::builtin_set();
-        let _ = prog.run(constants, None);
+        let _ = prog.run(&constants, None);
     });
 });
