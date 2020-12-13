@@ -104,8 +104,6 @@ impl<'consts> Evaluator<'consts> {
     }
 
     fn run_function<'src>(&self, name: FunctionName, args: Vec<Exp<'src>>) -> Result<Value<'src>, Error<'src>> {
-        use std::iter::once;
-
         match name {
             FunctionName::MultiByte(MultiByteType::Be16) => {
                 let arg = only_arg(args)?;

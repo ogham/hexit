@@ -8,7 +8,6 @@
 #![warn(nonstandard_style)]
 #![warn(rust_2018_idioms)]
 #![warn(trivial_casts, trivial_numeric_casts)]
-#![allow(unused)]
 
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(clippy::match_same_arms)]

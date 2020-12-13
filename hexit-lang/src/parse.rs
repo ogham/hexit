@@ -4,7 +4,7 @@ use std::fmt;
 use log::*;
 
 use crate::ast::*;
-use crate::pos::{Placed, At};
+use crate::pos::Placed;
 use crate::tokens::Token;
 
 
@@ -408,14 +408,14 @@ pub enum Error<'src> {
 impl<'src> fmt::Display for Error<'src> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::SingleHex(c)               => write!(f, "Unpaired hex character {:?}", c.contents),
-            Self::StrayCharacter(c)          => write!(f, "Stray character {:?}", c.contents),
-            Self::StrayFunctionName(name)    => write!(f, "Function name {:?} not followed by arguments", name.contents),
-            Self::InvalidFunctionName(name)  => write!(f, "Invalid function name {:?}", name.contents),
-            Self::InvalidRepeatAmount(ra)    => write!(f, "Invalid repeat amount {:?}", ra.contents),
-            Self::InvalidForm(form)          => write!(f, "Could not interpret form {:?}", form.contents),
-            Self::StringEndsWithBackslash(s) => write!(f, "String ends with backslash"),
-            Self::UnclosedFunction(open)     => write!(f, "Unclosed function"),
+            Self::SingleHex(c)                => write!(f, "Unpaired hex character {:?}", c.contents),
+            Self::StrayCharacter(c)           => write!(f, "Stray character {:?}", c.contents),
+            Self::StrayFunctionName(name)     => write!(f, "Function name {:?} not followed by arguments", name.contents),
+            Self::InvalidFunctionName(name)   => write!(f, "Invalid function name {:?}", name.contents),
+            Self::InvalidRepeatAmount(ra)     => write!(f, "Invalid repeat amount {:?}", ra.contents),
+            Self::InvalidForm(form)           => write!(f, "Could not interpret form {:?}", form.contents),
+            Self::StringEndsWithBackslash(_)  => write!(f, "String ends with backslash"),
+            Self::UnclosedFunction(_)         => write!(f, "Unclosed function"),
         }
     }
 }
@@ -423,14 +423,14 @@ impl<'src> fmt::Display for Error<'src> {
 impl<'src> Error<'src> {
     pub fn source_pos(&self) -> &Placed<&'src str> {
         match self {
-            Self::SingleHex(c)               => c,
-            Self::StrayCharacter(c)          => c,
-            Self::StrayFunctionName(name)    => name,
-            Self::InvalidFunctionName(name)  => name,
-            Self::InvalidRepeatAmount(ra)    => ra,
-            Self::InvalidForm(form)          => form,
-            Self::StringEndsWithBackslash(s) => s,
-            Self::UnclosedFunction(open)     => open,
+            Self::SingleHex(c)                => c,
+            Self::StrayCharacter(c)           => c,
+            Self::StrayFunctionName(name)     => name,
+            Self::InvalidFunctionName(name)   => name,
+            Self::InvalidRepeatAmount(ra)     => ra,
+            Self::InvalidForm(form)           => form,
+            Self::StringEndsWithBackslash(s)  => s,
+            Self::UnclosedFunction(open)      => open,
         }
     }
 }
@@ -441,6 +441,12 @@ mod test_parse_alphanums {
     use pretty_assertions::assert_eq;
     use crate::pos::At;
     use super::*;
+
+    #[test]
+    #[should_panic]
+    fn utf8_byte() {
+        let _ = parse_alphanums("é".at(1, 0));
+    }
 
     #[test]
     fn one_byte() {
@@ -557,7 +563,7 @@ mod test_parse_function_name {
     #[test]
     #[should_panic]
     fn empty() {
-        parse_function_name("".at(1, 0));
+        let _ = parse_function_name("".at(1, 0));
     }
 
     #[test]
