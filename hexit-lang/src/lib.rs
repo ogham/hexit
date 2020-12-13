@@ -16,7 +16,8 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::needless_lifetimes)]
-#![allow(clippy::range_plus_one)]
+#![allow(clippy::non_ascii_literal)]
+#![allow(clippy::single_match_else)]
 #![allow(clippy::wildcard_imports)]
 
 #![deny(clippy::cast_possible_truncation)]
@@ -57,8 +58,8 @@ impl<'src> Program<'src> {
 
     /// Runs this Hexit program, returning the vector of bytes that it has
     /// produced, or an evaluation error.
-    pub fn run(self, constants: ConstantsTable, limit: Option<usize>) -> Result<Vec<u8>, eval::Error<'src>> {
-        let bytes = eval::evaluate_exps(self.exps, &constants, limit)?;
+    pub fn run(self, constants: &ConstantsTable, limit: Option<usize>) -> Result<Vec<u8>, eval::Error<'src>> {
+        let bytes = eval::evaluate_exps(self.exps, constants, limit)?;
         Ok(bytes)
     }
 }

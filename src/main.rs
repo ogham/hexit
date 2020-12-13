@@ -108,7 +108,7 @@ pub fn run(mode: RunningMode) -> i32 {
             };
 
             let constants = ConstantsTable::builtin_set();
-            let bytes = match program.run(constants, None) {
+            let bytes = match program.run(&constants, None) {
                 Ok(bs) => bs,
                 Err(e) => {
                     eprintln!("{}: runtime error: {}", input, e);
