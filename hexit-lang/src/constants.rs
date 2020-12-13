@@ -61,25 +61,36 @@ impl ConstantsTable {
         // DNS stuff
         // https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml
 
-        // DNS message types
-        map.insert("DNS_QUERY",  Constant::Sixteen(0x0100));
-
         // DNS classes
         map.insert("DNS_IN",     Constant::Sixteen(1));
+        map.insert("DNS_CH",     Constant::Sixteen(3));
+        map.insert("DNS_HS",     Constant::Sixteen(4));
 
         // DNS record types
-        map.insert("DNS_A",      Constant::Sixteen( 1));
-        map.insert("DNS_NS",     Constant::Sixteen( 2));
-        map.insert("DNS_CNAME",  Constant::Sixteen( 5));
-        map.insert("DNS_SOA",    Constant::Sixteen( 6));
-        map.insert("DNS_PTR",    Constant::Sixteen(12));
-        map.insert("DNS_HINFO",  Constant::Sixteen(13));
-        map.insert("DNS_MINFO",  Constant::Sixteen(14));
-        map.insert("DNS_MX",     Constant::Sixteen(15));
-        map.insert("DNS_TXT",    Constant::Sixteen(16));
-        map.insert("DNS_GPOS",   Constant::Sixteen(27));
-        map.insert("DNS_AAAA",   Constant::Sixteen(28));
-        map.insert("DNS_SRV",    Constant::Sixteen(33));
+        map.insert("DNS_A",           Constant::Sixteen(  1));
+        map.insert("DNS_NS",          Constant::Sixteen(  2));
+        map.insert("DNS_CNAME",       Constant::Sixteen(  5));
+        map.insert("DNS_SOA",         Constant::Sixteen(  6));
+        map.insert("DNS_PTR",         Constant::Sixteen( 12));
+        map.insert("DNS_HINFO",       Constant::Sixteen( 13));
+        map.insert("DNS_MINFO",       Constant::Sixteen( 14));
+        map.insert("DNS_MX",          Constant::Sixteen( 15));
+        map.insert("DNS_TXT",         Constant::Sixteen( 16));
+        map.insert("DNS_GPOS",        Constant::Sixteen( 27));
+        map.insert("DNS_AAAA",        Constant::Sixteen( 28));
+        map.insert("DNS_LOC",         Constant::Sixteen( 29));
+        map.insert("DNS_SRV",         Constant::Sixteen( 33));
+        map.insert("DNS_NAPTR",       Constant::Sixteen( 35));
+        map.insert("DNS_OPT",         Constant::Sixteen( 41));
+        map.insert("DNS_SSHFP",       Constant::Sixteen( 44));
+        map.insert("DNS_IPSECKEY",    Constant::Sixteen( 45));
+        map.insert("DNS_TLSA",        Constant::Sixteen( 52));
+        map.insert("DNS_OPENPGPKEY",  Constant::Sixteen( 61));
+        map.insert("DNS_EUI48",       Constant::Sixteen(108));
+        map.insert("DNS_EUI64",       Constant::Sixteen(109));
+        map.insert("DNS_ANY",         Constant::Sixteen(255));
+        map.insert("DNS_URI",         Constant::Sixteen(256));
+        map.insert("DNS_CAA",         Constant::Sixteen(257));
 
 
         // Ethernet stuff
