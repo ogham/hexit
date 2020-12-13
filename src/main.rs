@@ -102,7 +102,7 @@ pub fn run(mode: RunningMode) -> i32 {
             let program = match Program::read(&source) {
                 Ok(p) => p,
                 Err(e) => {
-                    eprintln!("{}:{}: syntax error: {}", input, e.source_pos().line_number, e);
+                    eprintln!("{}:{}:{}: syntax error: {}", input, e.source_pos().line_number, e.source_pos().column_number, e);
                     return exits::PROGRAM_ERROR;
                 }
             };

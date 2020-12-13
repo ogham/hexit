@@ -83,36 +83,36 @@ mod test {
     #[test]
     fn lonely() {
         assert_eq!(tokenise_and_parse("0"),
-                   Err(Error::Parse(parse::Error::SingleHex("0".at(1)))));
+                   Err(Error::Parse(parse::Error::SingleHex("0".at(1, 0)))));
     }
 
     #[test]
     fn meme() {
         assert_eq!(tokenise_and_parse("E"),
-                   Err(Error::Parse(parse::Error::SingleHex("E".at(1)))));
+                   Err(Error::Parse(parse::Error::SingleHex("E".at(1, 0)))));
     }
 
     #[test]
     fn otherwise() {
         assert_eq!(tokenise_and_parse("q"),
-                   Err(Error::Parse(parse::Error::StrayCharacter("q".at(1)))));
+                   Err(Error::Parse(parse::Error::StrayCharacter("q".at(1, 0)))));
     }
 
     #[test]
     fn atrophy() {
         assert_eq!(tokenise_and_parse("\\"),
-                   Err(Error::Lex(lex::Error::UnknownCharacter("\\".at(1)))));
+                   Err(Error::Lex(lex::Error::UnknownCharacter("\\".at(1, 0)))));
     }
 
     #[test]
     fn closure() {
         assert_eq!(tokenise_and_parse(")"),
-                   Err(Error::Parse(parse::Error::StrayCharacter(")".at(1)))));
+                   Err(Error::Parse(parse::Error::StrayCharacter(")".at(1, 0)))));
     }
 
     #[test]
     fn exordium() {
         assert_eq!(tokenise_and_parse("["),
-                   Err(Error::Lex(lex::Error::UnclosedForm("[".at(1)))));
+                   Err(Error::Lex(lex::Error::UnclosedForm("[".at(1, 0)))));
     }
 }

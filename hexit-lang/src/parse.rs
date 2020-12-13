@@ -225,17 +225,26 @@ fn parse_alphanums(span: Placed<&'_ str>) -> Result<Alphanums<'_>, Error<'_>> {
         while let Some((index, first_char)) = chars.next() {
             let first_value = match first_char.to_digit(16) {
                 Some(f) => f as u8,
-                None    => return Err(Error::StrayCharacter(input[ index .. index + 1 ].at(span.line_number))),
+                None => {
+                    let placed = span.substring(index, index + 1);
+                    return Err(Error::StrayCharacter(placed));
+                }
             };
 
             let (index2, second_char) = match chars.next() {
                 Some(t) => t,
-                None    => return Err(Error::SingleHex(input[ index .. index + 1 ].at(span.line_number))),
+                None => {
+                    let placed = span.substring(index, index + 1);
+                    return Err(Error::SingleHex(placed));
+                }
             };
 
             let second_value = match second_char.to_digit(16) {
                 Some(f) => f as u8,
-                None    => return Err(Error::StrayCharacter(input[ index2 .. index2 + 1 ].at(span.line_number))),
+                None => {
+                    let placed = span.substring(index2, index2 + 1);
+                    return Err(Error::StrayCharacter(placed));
+                }
             };
 
             bytes.push(first_value * 16 + second_value);
@@ -431,68 +440,68 @@ mod test_parse_alphanums {
 
     #[test]
     fn one_byte() {
-        assert_eq!(parse_alphanums("EF".at(1)),
+        assert_eq!(parse_alphanums("EF".at(1, 0)),
                    Ok(Alphanums::Bytes(vec![ 0xEF ])));
     }
 
     #[test]
     fn two_bytes() {
-        assert_eq!(parse_alphanums("EF12".at(1)),
+        assert_eq!(parse_alphanums("EF12".at(1, 0)),
                    Ok(Alphanums::Bytes(vec![ 0xEF, 0x12 ])));
     }
 
     #[test]
     fn half_a_byte() {
-        assert_eq!(parse_alphanums("E".at(1)),
-                   Err(Error::SingleHex("E".at(1))));
+        assert_eq!(parse_alphanums("E".at(1, 0)),
+                   Err(Error::SingleHex("E".at(1, 0))));
     }
 
     #[test]
     fn not_a_byte() {
-        assert_eq!(parse_alphanums("Ex".at(1)),
-                   Err(Error::StrayCharacter("x".at(1))));
+        assert_eq!(parse_alphanums("Ex".at(1, 0)),
+                   Err(Error::StrayCharacter("x".at(1, 1))));
     }
 
     #[test]
     fn first_g() {
-        assert_eq!(parse_alphanums("FG".at(1)),
-                   Err(Error::StrayCharacter("G".at(1))));
+        assert_eq!(parse_alphanums("FG".at(1, 0)),
+                   Err(Error::StrayCharacter("G".at(1, 1))));
     }
 
     #[test]
     fn second_g() {
-        assert_eq!(parse_alphanums("GF".at(1)),
-                   Err(Error::StrayCharacter("G".at(1))));
+        assert_eq!(parse_alphanums("GF".at(1, 0)),
+                   Err(Error::StrayCharacter("G".at(1, 0))));
     }
 
     #[test]
     fn constant_name() {
-        assert_eq!(parse_alphanums("DNS_AAAA".at(1)),
+        assert_eq!(parse_alphanums("DNS_AAAA".at(1, 0)),
                    Ok(Alphanums::ConstantName("DNS_AAAA")));
     }
 
     #[test]
     fn shortest_possible_constant() {
-        assert_eq!(parse_alphanums("A_B".at(1)),
+        assert_eq!(parse_alphanums("A_B".at(1, 0)),
                    Ok(Alphanums::ConstantName("A_B")));
     }
 
     #[test]
     fn constant_ending_with_numbers() {
-        assert_eq!(parse_alphanums("DNS_EUI48".at(1)),
+        assert_eq!(parse_alphanums("DNS_EUI48".at(1, 0)),
                    Ok(Alphanums::ConstantName("DNS_EUI48")));
     }
 
     #[test]
     fn constant_too_short() {
-        assert_eq!(parse_alphanums("_A".at(1)),
-                   Err(Error::StrayCharacter("_".at(1))));
+        assert_eq!(parse_alphanums("_A".at(1, 0)),
+                   Err(Error::StrayCharacter("_".at(1, 0))));
     }
 
     #[test]
     fn constant_still_too_short() {
-        assert_eq!(parse_alphanums("A_".at(1)),
-                   Err(Error::StrayCharacter("_".at(1))));
+        assert_eq!(parse_alphanums("A_".at(1, 0)),
+                   Err(Error::StrayCharacter("_".at(1, 1))));
     }
 }
 
@@ -505,32 +514,32 @@ mod test_parse_form {
 
     #[test]
     fn empty() {
-        assert_eq!(parse_form("".at(1)),
-                   Err(Error::InvalidForm("".at(1))));
+        assert_eq!(parse_form("".at(1, 0)),
+                   Err(Error::InvalidForm("".at(1, 0))));
     }
 
     #[test]
     fn numbers() {
-        assert_eq!(parse_form("1234567".at(1)),
+        assert_eq!(parse_form("1234567".at(1, 0)),
                    Ok(Exp::Dec("1234567")));
     }
 
     #[test]
     fn ipv4() {
-        assert_eq!(parse_form("127.0.0.1".at(1)),
+        assert_eq!(parse_form("127.0.0.1".at(1, 0)),
                    Ok(Exp::IPv4 { bytes: [127, 0, 0,  1] }));
     }
 
     #[test]
     fn ipv6() {
-        assert_eq!(parse_form("::1".at(1)),
+        assert_eq!(parse_form("::1".at(1, 0)),
                    Ok(Exp::IPv6 { bytes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] }));
     }
 
     #[test]
     fn something_else() {
-        assert_eq!(parse_form("something_else".at(1)),
-                   Err(Error::InvalidForm("something_else".at(1))));
+        assert_eq!(parse_form("something_else".at(1, 0)),
+                   Err(Error::InvalidForm("something_else".at(1, 0))));
     }
 }
 
@@ -544,72 +553,72 @@ mod test_parse_function_name {
     #[test]
     #[should_panic]
     fn empty() {
-        parse_function_name("".at(1));
+        parse_function_name("".at(1, 0));
     }
 
     #[test]
     fn once() {
-        assert_eq!(parse_function_name("x1".at(1)),
+        assert_eq!(parse_function_name("x1".at(1, 0)),
                    Ok(Some(FunctionName::Repeat(1))));
     }
 
     #[test]
     fn eleven_times() {
-        assert_eq!(parse_function_name("x11".at(1)),
+        assert_eq!(parse_function_name("x11".at(1, 0)),
                    Ok(Some(FunctionName::Repeat(11))));
     }
 
     #[test]
     fn nonce() {
-        assert_eq!(parse_function_name("x0".at(1)),
-                   Err(Error::InvalidRepeatAmount("x0".at(1))));
+        assert_eq!(parse_function_name("x0".at(1, 0)),
+                   Err(Error::InvalidRepeatAmount("x0".at(1, 0))));
     }
 
     #[test]
     fn too_many_times() {
-        assert_eq!(parse_function_name("x99999999999".at(1)),
-                   Err(Error::InvalidRepeatAmount("x99999999999".at(1))));
+        assert_eq!(parse_function_name("x99999999999".at(1, 0)),
+                   Err(Error::InvalidRepeatAmount("x99999999999".at(1, 0))));
     }
 
     #[test]
     fn be16() {
-        assert_eq!(parse_function_name("be16".at(1)),
+        assert_eq!(parse_function_name("be16".at(1, 0)),
                    Ok(Some(FunctionName::MultiByte(MultiByteType::Be16))));
     }
 
     #[test]
     fn be32() {
-        assert_eq!(parse_function_name("be32".at(1)),
+        assert_eq!(parse_function_name("be32".at(1, 0)),
                    Ok(Some(FunctionName::MultiByte(MultiByteType::Be32))));
     }
 
     #[test]
     fn le64() {
-        assert_eq!(parse_function_name("le64".at(1)),
+        assert_eq!(parse_function_name("le64".at(1, 0)),
                    Ok(Some(FunctionName::MultiByte(MultiByteType::Le64))));
     }
 
     #[test]
     fn missing_repeat_amount() {
-        assert_eq!(parse_function_name("x".at(1)),
+        assert_eq!(parse_function_name("x".at(1, 0)),
                    Ok(None));
     }
 
     #[test]
     fn two_xs() {
-        assert_eq!(parse_function_name("xx11".at(1)),
+        assert_eq!(parse_function_name("xx11".at(1, 0)),
                    Ok(None));
     }
 
     #[test]
     fn nonsense() {
-        assert_eq!(parse_function_name("fhqwhgads".at(1)),
+        assert_eq!(parse_function_name("fhqwhgads".at(1, 0)),
                    Ok(None));
     }
 
     #[test]
     fn nonsense_numbers() {
-        assert_eq!(parse_function_name("0123456789".at(1)),
+        assert_eq!(parse_function_name("0123456789".at(1, 0)),
                    Ok(None));
     }
 }
@@ -623,32 +632,32 @@ mod test_parse_quotes {
 
     #[test]
     fn empty() {
-        assert_eq!(parse_backslashes("".at(1)),
+        assert_eq!(parse_backslashes("".at(1, 0)),
                    Ok(Cow::Borrowed("")));
     }
 
     #[test]
     fn longer() {
-        assert_eq!(parse_backslashes("longer".at(1)),
+        assert_eq!(parse_backslashes("longer".at(1, 0)),
                    Ok(Cow::Borrowed("longer")));
     }
 
     #[test]
     fn backslash_slash() {
-        assert_eq!(parse_backslashes("back\\\\slash".at(1)),
+        assert_eq!(parse_backslashes("back\\\\slash".at(1, 0)),
                    Ok(Cow::from("back\\slash".to_string())));
     }
 
     #[test]
     fn backslash_quote() {
-        assert_eq!(parse_backslashes("back\\\"slash".at(1)),
+        assert_eq!(parse_backslashes("back\\\"slash".at(1, 0)),
                    Ok(Cow::from("back\"slash".to_string())));
     }
 
     #[test]
     fn backslash_end() {
-        assert_eq!(parse_backslashes("back\\".at(1)),
-                   Err(Error::StringEndsWithBackslash("back\\".at(1))));
+        assert_eq!(parse_backslashes("back\\".at(1, 0)),
+                   Err(Error::StringEndsWithBackslash("back\\".at(1, 0))));
     }
 }
 
@@ -661,10 +670,10 @@ mod test_edge_cases {
 
     #[test]
     fn a_function() {
-        let tokens = vec![ Token::Alphanum("x11".at(1)),
-                           Token::Open("(".at(1)),
-                           Token::Alphanum("AB".at(1)),
-                           Token::Close(")".at(1)) ];
+        let tokens = vec![ Token::Alphanum("x11".at(1, 0)),
+                           Token::Open("(".at(1, 0)),
+                           Token::Alphanum("AB".at(1, 0)),
+                           Token::Close(")".at(1, 0)) ];
 
         assert_eq!(parse_tokens(tokens),
                    Ok(vec![ Exp::Function {
@@ -675,9 +684,9 @@ mod test_edge_cases {
 
     #[test]
     fn empty_function() {
-        let tokens = vec![ Token::Alphanum("x11".at(1)),
-                           Token::Open("(".at(1)),
-                           Token::Close(")".at(1)) ];
+        let tokens = vec![ Token::Alphanum("x11".at(1, 0)),
+                           Token::Open("(".at(1, 0)),
+                           Token::Close(")".at(1, 0)) ];
 
         assert_eq!(parse_tokens(tokens),
                    Ok(vec![ Exp::Function {
@@ -688,29 +697,29 @@ mod test_edge_cases {
 
     #[test]
     fn suddenly_close() {
-        assert_eq!(parse_tokens(vec![ Token::Close(")".at(1)) ]),
-                   Err(Error::StrayCharacter(")".at(1))));
+        assert_eq!(parse_tokens(vec![ Token::Close(")".at(1, 0)) ]),
+                   Err(Error::StrayCharacter(")".at(1, 0))));
     }
 
     #[test]
     fn suddenly_open() {
-        assert_eq!(parse_tokens(vec![ Token::Open("(".at(1)) ]),
-                   Err(Error::StrayCharacter("(".at(1))));
+        assert_eq!(parse_tokens(vec![ Token::Open("(".at(1, 0)) ]),
+                   Err(Error::StrayCharacter("(".at(1, 0))));
     }
 
     #[test]
     fn stray_function_name() {
-        assert_eq!(parse_tokens(vec![ Token::Alphanum("le32".at(1)) ]),
-                   Err(Error::StrayFunctionName("le32".at(1))));
+        assert_eq!(parse_tokens(vec![ Token::Alphanum("le32".at(1, 0)) ]),
+                   Err(Error::StrayFunctionName("le32".at(1, 0))));
     }
 
     #[test]
     fn unclosed_function() {
-        let tokens = vec![ Token::Alphanum("x11".at(1)),
-                           Token::Open("(".at(1)),
-                           Token::Alphanum("AB".at(1)) ];
+        let tokens = vec![ Token::Alphanum("x11".at(1, 0)),
+                           Token::Open("(".at(1, 0)),
+                           Token::Alphanum("AB".at(1, 0)) ];
 
         assert_eq!(parse_tokens(tokens),
-                   Err(Error::UnclosedFunction("(".at(1))));
+                   Err(Error::UnclosedFunction("(".at(1, 0))));
     }
 }

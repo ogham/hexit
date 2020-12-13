@@ -21,14 +21,19 @@ pub fn lex_source<'src>(line_number: usize, input_source: &'src str) -> Result<V
 struct Lexer<'src> {
 
     /// The line number of the input program. An error thrown during lexing
-    /// contains this number to show to the user.
+    /// contains this number to show to the user. This does not change.
     line_number: usize,
+
+    /// The input source string, which gets referenced as slices in the tokens.
+    /// This does not change.
+    input_source: &'src str,
 
     /// The character iterator that yields characters to analyse.
     iter: CharIndices<'src>,
 
-    /// The input source string, which gets referenced as slices in the tokens.
-    input_source: &'src str,
+    /// The column number of this line, which gets incremented as characters
+    /// get read from the iterator.
+    column_number: usize,
 
     /// The lexer's current state, which changes as characters are read.
     state: State,
@@ -51,18 +56,25 @@ enum State {
 
     /// We have just read one or more alphanumeric characters, the first of
     /// which occurred at the anchor index of the source string.
-    ReadAlphanum { anchor: usize },
+    ReadAlphanum { anchor: Anchor },
 
     /// We have just read the opening `[` bracket of a form, or one of the
     /// characters within the form.
-    ReadForm { anchor: usize },
+    ReadForm { anchor: Anchor },
 
     /// We have just read the opening `"` quote of a quoted string, or one of
     /// the characters within the string.
-    ReadQuote { anchor: usize, backslash: bool },
+    ReadQuote { anchor: Anchor, backslash: bool },
 
     /// We are done parsing this line, so no further token should be produced.
     Done,
+}
+
+/// A stored position in the source string.
+#[derive(Debug, Copy, Clone)]
+struct Anchor {
+    index: usize,
+    column_number: usize,
 }
 
 
@@ -71,10 +83,11 @@ impl<'src> Lexer<'src> {
 
     /// Creates a new lexer with the given parameters.
     fn new(line_number: usize, input_source: &'src str) -> Self {
-        let state = State::Ready;
         let iter = input_source.char_indices();
+        let column_number = 0;
+        let state = State::Ready;
         let tokens = Vec::new();
-        Self { line_number, input_source, iter, state, tokens }
+        Self { line_number, input_source, iter, column_number, state, tokens }
     }
 
     /// Analyse the next character from the iterator, possibly changing the
@@ -83,21 +96,26 @@ impl<'src> Lexer<'src> {
     /// Returns `true` if there are more characters to read, `false` if there
     /// are no more, and an error if there is a problem with the user’s input.
     fn next_token(&mut self) -> Result<bool, Error<'src>> {
-        let (column, c) = match self.iter.next() {
+        let (index, c) = match self.iter.next() {
             Some(tuple) => tuple,
             None        => return Ok(false),
         };
 
+        let column_number = self.column_number;
+
         match (c, self.state) {
             (c, State::Ready) if c.is_ascii_alphanumeric() || c == '_' => {
-                self.state = State::ReadAlphanum { anchor: column };
+                let new_anchor = Anchor { index, column_number };
+                self.state = State::ReadAlphanum { anchor: new_anchor };
             }
             (c, State::ReadAlphanum { .. }) if c.is_ascii_alphanumeric() || c == '_' => {
                 // continue reading alphanums
             }
             (c, State::ReadWhitespace) if c.is_ascii_alphanumeric() || c == '_' => {
                 self.tokens.push(Token::Whitespace);
-                self.state = State::ReadAlphanum { anchor: column };
+
+                let new_anchor = Anchor { index, column_number };
+                self.state = State::ReadAlphanum { anchor: new_anchor };
             }
 
             (c, State::Ready) if c.is_whitespace() => {
@@ -108,26 +126,34 @@ impl<'src> Lexer<'src> {
             }
 
             (c, State::ReadAlphanum { anchor }) if c.is_ascii_whitespace() => {
-                let alphanum_string = self.span(anchor, column);
+                let alphanum_string = self.span(anchor, index);
                 self.tokens.push(Token::Alphanum(alphanum_string));
+
                 self.state = State::ReadWhitespace;
             }
 
             ('[', State::ReadWhitespace) => {
                 self.tokens.push(Token::Whitespace);
-                self.state = State::ReadForm { anchor: column };
+
+                let new_anchor = Anchor { index, column_number };
+                self.state = State::ReadForm { anchor: new_anchor };
             }
             ('[', State::Ready) => {
-                self.state = State::ReadForm { anchor: column };
+                let new_anchor = Anchor { index, column_number };
+                self.state = State::ReadForm { anchor: new_anchor };
             }
             ('[', State::ReadAlphanum { anchor }) => {
-                let alphanum_string = self.span(anchor, column);
+                let alphanum_string = self.span(anchor, index);
                 self.tokens.push(Token::Alphanum(alphanum_string));
-                self.state = State::ReadForm { anchor: column };
+
+                let new_anchor = Anchor { index, column_number };
+                self.state = State::ReadForm { anchor: new_anchor };
             }
-            (']', State::ReadForm { anchor }) => {
-                let form_string = self.span(anchor + 1, column);
+            (']', State::ReadForm { mut anchor }) => {
+                anchor.index += 1;
+                let form_string = self.span(anchor, index);
                 self.tokens.push(Token::Form(form_string));
+
                 self.state = State::Ready;
             }
             (_, State::ReadForm { anchor: _ }) => {
@@ -135,27 +161,34 @@ impl<'src> Lexer<'src> {
             }
 
             ('"', State::ReadAlphanum { anchor }) => {
-                let alphanum_string = self.span(anchor, column);
+                let alphanum_string = self.span(anchor, index);
                 self.tokens.push(Token::Alphanum(alphanum_string));
-                self.state = State::ReadQuote { anchor: column, backslash: false };
+
+                let new_anchor = Anchor { index, column_number };
+                self.state = State::ReadQuote { anchor: new_anchor, backslash: false };
             }
             ('"', State::ReadWhitespace) => {
                 self.tokens.push(Token::Whitespace);
-                self.state = State::ReadQuote { anchor: column, backslash: false };
+
+                let new_anchor = Anchor { index, column_number };
+                self.state = State::ReadQuote { anchor: new_anchor, backslash: false };
             }
             ('"', State::Ready) => {
-                self.state = State::ReadQuote { anchor: column, backslash: false };
+                let new_anchor = Anchor { index, column_number };
+                self.state = State::ReadQuote { anchor: new_anchor, backslash: false };
             }
             ('\\', State::ReadQuote { anchor, backslash: false }) => {
                 self.state = State::ReadQuote { anchor, backslash: true };
             }
-            ('"', State::ReadQuote { anchor, backslash: false }) => {
-                let quoted = self.span(anchor + 1, column);
+            ('"', State::ReadQuote { mut anchor, backslash: false }) => {
+                anchor.index += 1;
+                let quoted = self.span(anchor, index);
                 self.tokens.push(Token::Quoted(quoted));
+
                 self.state = State::Ready;
             }
             (_, State::ReadQuote { anchor, .. }) => {
-                // continue reading the string
+                // continue reading the string, but switch off backslash flag
                 self.state = State::ReadQuote { anchor, backslash: false };
             }
 
@@ -168,34 +201,42 @@ impl<'src> Lexer<'src> {
             }
 
             ('(', State::Ready) => {
-                let open_string = self.span(column, column + 1);
+                let char_position = Anchor { index, column_number };
+                let open_string = self.span(char_position, index + 1);
                 self.tokens.push(Token::Open(open_string));
             }
             (')', State::Ready) => {
-                let close_string = self.span(column, column + 1);
+                let char_position = Anchor { index, column_number };
+                let close_string = self.span(char_position, index + 1);
                 self.tokens.push(Token::Close(close_string));
             }
             ('(', State::ReadAlphanum { anchor }) => {
-                let alphanum_string = self.span(anchor, column);
+                let alphanum_string = self.span(anchor, index);
                 self.tokens.push(Token::Alphanum(alphanum_string));
-                let open_string = self.span(column, column + 1);
+
+                let char_position = Anchor { index, column_number };
+                let open_string = self.span(char_position, index + 1);
                 self.tokens.push(Token::Open(open_string));
                 self.state = State::Ready;
             }
             (')', State::ReadAlphanum { anchor }) => {
-                let alphanum_string = self.span(anchor, column);
+                let alphanum_string = self.span(anchor, index);
                 self.tokens.push(Token::Alphanum(alphanum_string));
-                let close_string = self.span(column, column + 1);
+
+                let char_position = Anchor { index, column_number };
+                let close_string = self.span(char_position, index + 1);
                 self.tokens.push(Token::Close(close_string));
                 self.state = State::Ready;
             }
 
             (c, _) => {
-                let char_string = self.span(column, column + 1);
+                let char_position = Anchor { index, column_number };
+                let char_string = self.span(char_position, index + 1);
                 return Err(Error::UnknownCharacter(char_string));
             }
         }
 
+        self.column_number += 1;
         Ok(true)
     }
 
@@ -223,14 +264,20 @@ impl<'src> Lexer<'src> {
         }
     }
 
-    fn span(&self, anchor: usize, column: usize) -> Placed<&'src str> {
-        let contents = &self.input_source[ anchor .. column ];
-        Placed { contents, line_number: self.line_number }
+    fn span(&self, anchor: Anchor, to: usize) -> Placed<&'src str> {
+        Placed {
+            contents: &self.input_source[ anchor.index .. to ],
+            line_number: self.line_number,
+            column_number: anchor.column_number,
+        }
     }
 
-    fn span_rest(&self, anchor: usize) -> Placed<&'src str> {
-        let contents = &self.input_source[ anchor .. ];
-        Placed { contents, line_number: self.line_number }
+    fn span_rest(&self, anchor: Anchor) -> Placed<&'src str> {
+        Placed {
+            contents: &self.input_source[ anchor.index .. ],
+            line_number: self.line_number,
+            column_number: anchor.column_number,
+        }
     }
 }
 
@@ -286,110 +333,110 @@ mod test {
     #[test]
     fn stray() {
         assert_eq!(lex_source(0, "&"),
-                   Err(Error::UnknownCharacter("&".at(0))));
+                   Err(Error::UnknownCharacter("&".at(0, 0))));
     }
 
     #[test]
     fn some_bytes() {
         assert_eq!(lex_source(1, "1A2B"),
-                   Ok(vec![ Token::Alphanum("1A2B".at(1)) ]));
+                   Ok(vec![ Token::Alphanum("1A2B".at(1, 0)) ]));
     }
 
     #[test]
     fn a_quoted() {
         assert_eq!(lex_source(2, "\"PANL\""),
-                   Ok(vec![ Token::Quoted("PANL".at(2)) ]));
+                   Ok(vec![ Token::Quoted("PANL".at(2, 0)) ]));
     }
 
     #[test]
     fn a_form() {
         assert_eq!(lex_source(3, "[FORM]"),
-                   Ok(vec![ Token::Form("FORM".at(3)) ]));
+                   Ok(vec![ Token::Form("FORM".at(3, 0)) ]));
     }
 
     #[test]
     fn eventually_a_quoted() {
         assert_eq!(lex_source(4, "    \"PANL\""),
                    Ok(vec![ Token::Whitespace,
-                            Token::Quoted("PANL".at(4)) ]));
+                            Token::Quoted("PANL".at(4, 4)) ]));
     }
 
     #[test]
     fn eventually_a_form() {
         assert_eq!(lex_source(5, "    [FORM]"),
                    Ok(vec![ Token::Whitespace,
-                            Token::Form("FORM".at(5)) ]));
+                            Token::Form("FORM".at(5, 4)) ]));
     }
 
     #[test]
     fn unclosed_quote() {
         assert_eq!(lex_source(6, "\"FORM"),
-                   Err(Error::UnclosedString("\"FORM".at(6))));
+                   Err(Error::UnclosedString("\"FORM".at(6, 0))));
     }
 
     #[test]
     fn unclosed_form() {
         assert_eq!(lex_source(7, "[FORM"),
-                   Err(Error::UnclosedForm("[FORM".at(7))));
+                   Err(Error::UnclosedForm("[FORM".at(7, 0))));
     }
 
     #[test]
     fn in_parentheses() {
         assert_eq!(lex_source(8, "(AB34)"),
-                   Ok(vec![ Token::Open("(".at(8)),
-                            Token::Alphanum("AB34".at(8)),
-                            Token::Close(")".at(8)) ]));
+                   Ok(vec![ Token::Open("(".at(8, 0)),
+                            Token::Alphanum("AB34".at(8, 1)),
+                            Token::Close(")".at(8, 5)) ]));
     }
 
     #[test]
     fn function_call() {
         assert_eq!(lex_source(9, "x86(AB34)"),
-                   Ok(vec![ Token::Alphanum("x86".at(9)),
-                            Token::Open("(".at(9)),
-                            Token::Alphanum("AB34".at(9)),
-                            Token::Close(")".at(9)), ]));
+                   Ok(vec![ Token::Alphanum("x86".at(9, 0)),
+                            Token::Open("(".at(9, 3)),
+                            Token::Alphanum("AB34".at(9, 4)),
+                            Token::Close(")".at(9, 8)), ]));
     }
 
     #[test]
     fn surrounded_by_quotes() {
         assert_eq!(lex_source(10, "\"\"\"\"A\"\"\"\""),
-                   Ok(vec![ Token::Quoted("".at(10)),
-                            Token::Quoted("".at(10)),
-                            Token::Alphanum("A".at(10)),
-                            Token::Quoted("".at(10)),
-                            Token::Quoted("".at(10)), ]));
+                   Ok(vec![ Token::Quoted("".at(10, 0)),
+                            Token::Quoted("".at(10, 2)),
+                            Token::Alphanum("A".at(10, 4)),
+                            Token::Quoted("".at(10, 5)),
+                            Token::Quoted("".at(10, 7)), ]));
     }
 
     #[test]
     fn quotes_backslashes() {
         assert_eq!(lex_source(11, "\"\\\"\""),
-                   Ok(vec![ Token::Quoted("\\\"".at(11)) ]));
+                   Ok(vec![ Token::Quoted("\\\"".at(11, 0)) ]));
     }
 
     #[test]
     fn mixture() {
         assert_eq!(lex_source(12, "1A2B[FORM]\"PANL\"[FORM]1A2B\"PANL\"1A2B"),
-                   Ok(vec![ Token::Alphanum("1A2B".at(12)),
-                            Token::Form("FORM".at(12)),
-                            Token::Quoted("PANL".at(12)),
-                            Token::Form("FORM".at(12)),
-                            Token::Alphanum("1A2B".at(12)),
-                            Token::Quoted("PANL".at(12)),
-                            Token::Alphanum("1A2B".at(12)), ]));
+                   Ok(vec![ Token::Alphanum("1A2B".at(12, 0)),
+                            Token::Form("FORM".at(12, 4)),
+                            Token::Quoted("PANL".at(12, 10)),
+                            Token::Form("FORM".at(12, 16)),
+                            Token::Alphanum("1A2B".at(12, 22)),
+                            Token::Quoted("PANL".at(12, 26)),
+                            Token::Alphanum("1A2B".at(12, 32)), ]));
     }
 
     #[test]
     fn a_lowly_underscore() {
         assert_eq!(lex_source(13, "___ _"),
-                   Ok(vec![ Token::Alphanum("___".at(13)),
+                   Ok(vec![ Token::Alphanum("___".at(13, 0)),
                             Token::Whitespace,
-                            Token::Alphanum("_".at(13)), ]));
+                            Token::Alphanum("_".at(13, 4)), ]));
     }
 
     #[test]
     fn whitespace_then_quoted_nothing() {
         assert_eq!(lex_source(14, "    \"\""),
                    Ok(vec![ Token::Whitespace,
-                            Token::Quoted("".at(14)) ]));
+                            Token::Quoted("".at(14, 4)) ]));
     }
 }
