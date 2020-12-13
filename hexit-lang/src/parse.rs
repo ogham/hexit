@@ -210,7 +210,7 @@ enum Alphanums<'src> {
 fn parse_alphanums(span: Placed<&'_ str>) -> Result<Alphanums<'_>, Error<'_>> {
     let input = span.contents;
 
-    if input.len() >= 3 && input.contains('_') && input.chars().all(|c| c.is_ascii_uppercase() || c == '_') {
+    if is_constant_name(input) {
         Ok(Alphanums::ConstantName(input))
     }
     else if let Some(name) = parse_function_name(span)? {
@@ -242,6 +242,18 @@ fn parse_alphanums(span: Placed<&'_ str>) -> Result<Alphanums<'_>, Error<'_>> {
 
         Ok(Alphanums::Bytes(bytes))
     }
+}
+
+/// Determines whether this set of alphanums is a valid constant name: it must
+/// start with at least one uppercase letter, and then contain uppercase
+/// letters or digits or underscores.
+#[cfg_attr(all(test, feature = "with_mutagen"), ::mutagen::mutate)]
+fn is_constant_name(input: &str) -> bool {
+    // by this point, non-ASCII characters should already be handled
+    input.len() >= 3 &&
+        input.contains('_') &&
+        input[0..1].chars().all(|c| c.is_ascii_uppercase()) &&
+        input[1..].chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
 }
 
 /// Parses a string of characters into a function name, returning an error if
@@ -453,9 +465,21 @@ mod test_parse_alphanums {
     }
 
     #[test]
+    fn constant_name() {
+        assert_eq!(parse_alphanums("DNS_AAAA".at(1)),
+                   Ok(Alphanums::ConstantName("DNS_AAAA")));
+    }
+
+    #[test]
     fn shortest_possible_constant() {
         assert_eq!(parse_alphanums("A_B".at(1)),
                    Ok(Alphanums::ConstantName("A_B")));
+    }
+
+    #[test]
+    fn constant_ending_with_numbers() {
+        assert_eq!(parse_alphanums("DNS_EUI48".at(1)),
+                   Ok(Alphanums::ConstantName("DNS_EUI48")));
     }
 
     #[test]
