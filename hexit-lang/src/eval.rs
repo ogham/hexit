@@ -9,15 +9,7 @@ use crate::constants::{ConstantsTable, Constant, UnknownConstant};
 /// Evaluates all the expressions in the iterator into a vector of bytes,
 /// returning an error if one occurs without processing the rest.
 pub fn evaluate_exps<'src>(exps: impl IntoIterator<Item=Exp<'src>>, constants: &ConstantsTable, limit: Option<usize>) -> Result<Vec<u8>, Error<'src>> {
-    eval(exps, constants, limit, 0)
-}
-
-fn eval<'src>(exps: impl IntoIterator<Item=Exp<'src>>, constants: &ConstantsTable, _limit: Option<usize>, depth: usize) -> Result<Vec<u8>, Error<'src>> {
-    if depth > 6 {
-        return Err(Error::TooMuchRecursion);
-    }
-
-    let evaluator = Evaluator::new(constants);
+    let evaluator = Evaluator { constants, limit };
     let mut bytes = Vec::new();
 
     for exp in exps {
@@ -48,15 +40,14 @@ pub enum MultiByteValue<'src> {
 
 struct Evaluator<'consts> {
     constants: &'consts ConstantsTable,
+    limit: Option<usize>,
 }
 
 impl<'consts> Evaluator<'consts> {
 
-    fn new(constants: &'consts ConstantsTable) -> Self {
-        Self { constants }
-    }
-
     fn evaluate_exp<'src>(&self, exp: Exp<'src>) -> Result<Value<'src>, Error<'src>> {
+        trace!("Evaluating expression -> {:#?}", exp);
+
         match exp {
             Exp::Char(byte) => {
                 Ok(Value::Byte(byte))
@@ -142,10 +133,23 @@ impl<'consts> Evaluator<'consts> {
             }
 
             FunctionName::Repeat(amount) => {
+                let mut bytes = Vec::new();
+
+                for exp in args {
+                    let sub_bytes = self.evaluate_exp(exp)?.eval_to_bytes()?;
+                    bytes.extend(&sub_bytes);
+                }
+
+                // Check whether this would hit the limit, because it’s
+                // possible for repeat functions to generate lots of
+                // output very quickly
+                if let Some(limit) = self.limit {
+                    if limit <= bytes.len() * usize::from(amount) {
+                        return Err(Error::TooMuchOutput);
+                    }
+                }
+
                 let mut result_bytes = Vec::new();
-
-                let bytes = eval(args, &self.constants, None, 4)?;
-
                 for _ in 0 .. amount {
                     result_bytes.extend(&bytes);
                 }
@@ -169,10 +173,17 @@ impl<'consts> Evaluator<'consts> {
             }
 
             FunctionName::BitwiseNot => {
-                let mut bytes = eval(args, &self.constants, None, 4)?;
+                let mut bytes = Vec::<u8>::new();
+
+                for exp in args {
+                    let sub_bytes = self.evaluate_exp(exp)?.eval_to_bytes()?;
+                    bytes.extend(&sub_bytes);
+                }
+
                 for b in &mut bytes {
                     *b = !*b;
                 }
+
                 Ok(Value::VariableBytes(bytes))
             }
         }
@@ -215,10 +226,12 @@ impl<'src> Value<'src> {
                 endianify(o2)
             }
             Self::MultiByte(MultiByteValue::ThirtyTwo(o4)) => {
-                todo!()
+                let message = format!("Tried to turn four bytes ({:?}) into 2 bytes", o4);
+                return Err(Error::InvalidArgs(message));
             }
             Self::MultiByte(MultiByteValue::SixtyFour(o8)) => {
-                todo!()
+                let message = format!("Tried to turn eight bytes ({:?}) into 2 bytes", o8);
+                return Err(Error::InvalidArgs(message));
             }
             Self::MultiByte(MultiByteValue::RawNumber(s)) => {
                 match s.parse() {
@@ -250,7 +263,8 @@ impl<'src> Value<'src> {
                 endianify(o4)
             }
             Self::MultiByte(MultiByteValue::SixtyFour(o8)) => {
-                todo!()
+                let message = format!("Tried to turn eight bytes ({:?}) into 4 bytes", o8);
+                return Err(Error::InvalidArgs(message));
             }
             Self::MultiByte(MultiByteValue::RawNumber(s)) => {
                 match s.parse() {
@@ -493,5 +507,16 @@ mod test {
         let exps = vec![ Exp::Dec("256") ];
         assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
                    Err(Error::TopLevelBigDecimal(MultiByteValue::RawNumber("256"))));
+    }
+
+    #[test]
+    fn test_limit() {
+        let exps = vec![ Exp::Function {
+            name: FunctionName::Repeat(30000),
+            args: vec![ Exp::Char(0x73), Exp::Char(0x73), Exp::Char(0x73) ]
+        } ];
+
+        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), Some(1000)),
+                   Err(Error::TooMuchOutput));
     }
 }

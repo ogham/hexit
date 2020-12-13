@@ -49,15 +49,17 @@ impl<'src> Program<'src> {
     /// Reads a Hexit program from a string of Hexit source, returning a valid
     /// program or a read error.
     pub fn read(input_source: &'src str) -> Result<Self, read::Error<'src>> {
-        debug!("Reading string {:?}", input_source);
+        debug!("Reading string -> {:?}", input_source);
+
         let exps = read::tokenise_and_parse(input_source)?;
-        trace!("Expressions {:#?}", exps);
         Ok(Self { exps })
     }
 
     /// Runs this Hexit program, returning the vector of bytes that it has
     /// produced, or an evaluation error.
     pub fn run(self, constants: &ConstantsTable, limit: Option<usize>) -> Result<Vec<u8>, eval::Error<'src>> {
+        debug!("Expressions -> {:#?}", self.exps);
+
         let bytes = eval::evaluate_exps(self.exps, constants, limit)?;
         Ok(bytes)
     }
