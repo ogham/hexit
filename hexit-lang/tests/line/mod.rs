@@ -12,6 +12,7 @@ macro_rules! test_eval {
 }
 
 
+mod bitwise_function_tests;
 mod byte_tests;
 mod constant_tests;
 mod decimal_form_tests;

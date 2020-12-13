@@ -45,111 +45,6 @@ pub enum MultiByteValue<'src> {
     RawNumber(&'src str),
 }
 
-impl<'src> Value<'src> {
-    fn eval_to_bytes(self) -> Result<Vec<u8>, Error<'src>> {
-        match self {
-            Self::Byte(byte) => {
-                Ok(vec![ byte ])
-            }
-            Self::VariableBytes(bytes) => {
-                Ok(bytes)
-            }
-            Self::MultiByte(MultiByteValue::RawNumber(s)) => {
-                match s.parse() {
-                    Ok(v) => {
-                        Ok(vec![ v ])
-                    }
-                    Err(e) => {
-                        warn!("Parse error: {}", e);
-                        Err(Error::TopLevelBigDecimal(MultiByteValue::RawNumber(s)))
-                    }
-                }
-            }
-            Self::MultiByte(v) => {
-                Err(Error::TopLevelBigDecimal(v))
-            }
-        }
-    }
-
-    fn to_two_variable_bytes(self, endianify: impl Fn(u16) -> [u8; 2]) -> Result<Self, Error<'src>> {
-        let bytes = match self {
-            Self::Byte(b) => {
-                endianify(u16::from(b))
-            }
-            Self::MultiByte(MultiByteValue::Sixteen(o2)) => {
-                endianify(o2)
-            }
-            Self::MultiByte(MultiByteValue::RawNumber(s)) => {
-                match s.parse() {
-                    Ok(num) => endianify(num),
-                    Err(e) => {
-                        warn!("Parse error: {}", e);
-                        return Err(Error::TooBigDecimal(MultiByteValue::RawNumber(s)));
-                    }
-                }
-            }
-            _ => {
-                todo!("val: {:?}", self)
-            }
-        };
-
-        Ok(Value::VariableBytes(bytes.to_vec()))
-    }
-
-    fn to_four_variable_bytes(self, endianify: impl Fn(u32) -> [u8; 4]) -> Result<Self, Error<'src>> {
-        let bytes = match self {
-            Self::Byte(b) => {
-                endianify(u32::from(b))
-            }
-            Self::MultiByte(MultiByteValue::Sixteen(o2)) => {
-                endianify(u32::from(o2))
-            }
-            Self::MultiByte(MultiByteValue::ThirtyTwo(o4)) => {
-                endianify(o4)
-            }
-            Self::MultiByte(MultiByteValue::RawNumber(s)) => {
-                match s.parse() {
-                    Ok(num) => endianify(num),
-                    Err(e) => {
-                        warn!("Parse error: {}", e);
-                        return Err(Error::TooBigDecimal(MultiByteValue::RawNumber(s)));
-                    }
-                }
-            }
-            _ => {
-                todo!("val: {:?}", self)
-            }
-        };
-
-        Ok(Value::VariableBytes(bytes.to_vec()))
-    }
-
-    fn to_eight_variable_bytes(self, endianify: impl Fn(u64) -> [u8; 8]) -> Result<Self, Error<'src>> {
-        let bytes = match self {
-            Self::Byte(b) => {
-                endianify(u64::from(b))
-            }
-            Self::MultiByte(MultiByteValue::Sixteen(o2)) => {
-                endianify(u64::from(o2))
-            }
-            Self::MultiByte(MultiByteValue::RawNumber(s)) => {
-                match s.parse() {
-                    Ok(num) => endianify(num),
-                    Err(e) => {
-                        warn!("Parse error: {}", e);
-                        return Err(Error::TooBigDecimal(MultiByteValue::RawNumber(s)));
-                    }
-                }
-            }
-            _ => {
-                todo!("val: {:?}", self)
-            }
-        };
-
-        Ok(Value::VariableBytes(bytes.to_vec()))
-    }
-}
-
 
 struct Evaluator<'consts> {
     constants: &'consts ConstantsTable,
@@ -259,12 +154,213 @@ impl<'consts> Evaluator<'consts> {
 
                 Ok(Value::VariableBytes(result_bytes))
             }
-            _ => {
-                todo!("Func: {:?}", name)
+
+            FunctionName::Bitwise(BitwiseOperation::And) => {
+                let mut iter = args.into_iter().map(|exp| self.evaluate_exp(exp));
+                let mut result = match iter.next() {
+                    Some(val)  => val?,
+                    None       => return Err(Error::InvalidArgs("No arguments for and function".into())),
+                };
+
+                for next_val in iter {
+                    result = result.and(next_val?)?;
+                }
+
+                Ok(result)
+            }
+
+            FunctionName::Bitwise(BitwiseOperation::Or) => {
+                todo!()
+            }
+
+            FunctionName::Bitwise(BitwiseOperation::Xor) => {
+                todo!()
+            }
+
+            FunctionName::Bitwise(BitwiseOperation::Not) => {
+                let arg = only_arg(args)?;
+                let val = self.evaluate_exp(arg)?;
+
+                todo!()
             }
         }
     }
 }
+
+
+impl<'src> Value<'src> {
+    fn eval_to_bytes(self) -> Result<Vec<u8>, Error<'src>> {
+        match self {
+            Self::Byte(byte) => {
+                Ok(vec![ byte ])
+            }
+            Self::VariableBytes(bytes) => {
+                Ok(bytes)
+            }
+            Self::MultiByte(MultiByteValue::RawNumber(s)) => {
+                match s.parse() {
+                    Ok(v) => {
+                        Ok(vec![ v ])
+                    }
+                    Err(e) => {
+                        warn!("Parse error: {}", e);
+                        Err(Error::TopLevelBigDecimal(MultiByteValue::RawNumber(s)))
+                    }
+                }
+            }
+            Self::MultiByte(v) => {
+                Err(Error::TopLevelBigDecimal(v))
+            }
+        }
+    }
+
+    fn to_two_variable_bytes(self, endianify: impl Fn(u16) -> [u8; 2]) -> Result<Self, Error<'src>> {
+        let bytes = match self {
+            Self::Byte(b) => {
+                endianify(u16::from(b))
+            }
+            Self::MultiByte(MultiByteValue::Sixteen(o2)) => {
+                endianify(o2)
+            }
+            Self::MultiByte(MultiByteValue::ThirtyTwo(o4)) => {
+                todo!()
+            }
+            Self::MultiByte(MultiByteValue::SixtyFour(o8)) => {
+                todo!()
+            }
+            Self::MultiByte(MultiByteValue::RawNumber(s)) => {
+                match s.parse() {
+                    Ok(num) => endianify(num),
+                    Err(e) => {
+                        warn!("Parse error: {}", e);
+                        return Err(Error::TooBigDecimal(MultiByteValue::RawNumber(s)));
+                    }
+                }
+            }
+            Self::VariableBytes(bytes) => {
+                let message = format!("Tried to turn variable bytes ({:?}) into 2 bytes", bytes);
+                return Err(Error::InvalidArgs(message));
+            }
+        };
+
+        Ok(Value::VariableBytes(bytes.to_vec()))
+    }
+
+    fn to_four_variable_bytes(self, endianify: impl Fn(u32) -> [u8; 4]) -> Result<Self, Error<'src>> {
+        let bytes = match self {
+            Self::Byte(b) => {
+                endianify(u32::from(b))
+            }
+            Self::MultiByte(MultiByteValue::Sixteen(o2)) => {
+                endianify(u32::from(o2))
+            }
+            Self::MultiByte(MultiByteValue::ThirtyTwo(o4)) => {
+                endianify(o4)
+            }
+            Self::MultiByte(MultiByteValue::SixtyFour(o8)) => {
+                todo!()
+            }
+            Self::MultiByte(MultiByteValue::RawNumber(s)) => {
+                match s.parse() {
+                    Ok(num) => endianify(num),
+                    Err(e) => {
+                        warn!("Parse error: {}", e);
+                        return Err(Error::TooBigDecimal(MultiByteValue::RawNumber(s)));
+                    }
+                }
+            }
+            Self::VariableBytes(bytes) => {
+                let message = format!("Tried to turn variable bytes ({:?}) into 4 bytes", bytes);
+                return Err(Error::InvalidArgs(message));
+            }
+        };
+
+        Ok(Value::VariableBytes(bytes.to_vec()))
+    }
+
+    fn to_eight_variable_bytes(self, endianify: impl Fn(u64) -> [u8; 8]) -> Result<Self, Error<'src>> {
+        let bytes = match self {
+            Self::Byte(b) => {
+                endianify(u64::from(b))
+            }
+            Self::MultiByte(MultiByteValue::Sixteen(o2)) => {
+                endianify(u64::from(o2))
+            }
+            Self::MultiByte(MultiByteValue::ThirtyTwo(o4)) => {
+                endianify(u64::from(o4))
+            }
+            Self::MultiByte(MultiByteValue::SixtyFour(o8)) => {
+                endianify(o8)
+            }
+            Self::MultiByte(MultiByteValue::RawNumber(s)) => {
+                match s.parse() {
+                    Ok(num) => endianify(num),
+                    Err(e) => {
+                        warn!("Parse error: {}", e);
+                        return Err(Error::TooBigDecimal(MultiByteValue::RawNumber(s)));
+                    }
+                }
+            }
+            Self::VariableBytes(bytes) => {
+                let message = format!("Tried to turn variable bytes ({:?}) into 8 bytes", bytes);
+                return Err(Error::InvalidArgs(message));
+            }
+        };
+
+        Ok(Value::VariableBytes(bytes.to_vec()))
+    }
+
+    fn and(self, next_val: Self) -> Result<Self, Error<'src>> {
+        match (self, next_val) {
+            (Self::Byte(left),
+             Self::Byte(right)) => {
+                Ok(Self::Byte(left & right))
+            }
+
+            (Self::MultiByte(MultiByteValue::Sixteen(left)),
+             Self::MultiByte(MultiByteValue::Sixteen(right))) => {
+                Ok(Self::MultiByte(MultiByteValue::Sixteen(left & right)))
+            }
+
+            (Self::MultiByte(MultiByteValue::ThirtyTwo(left)),
+             Self::MultiByte(MultiByteValue::ThirtyTwo(right))) => {
+                Ok(Self::MultiByte(MultiByteValue::ThirtyTwo(left & right)))
+            }
+
+            (Self::MultiByte(MultiByteValue::SixtyFour(left)),
+             Self::MultiByte(MultiByteValue::SixtyFour(right))) => {
+                Ok(Self::MultiByte(MultiByteValue::SixtyFour(left & right)))
+            }
+
+            (Self::MultiByte(MultiByteValue::RawNumber(left)),
+             Self::MultiByte(MultiByteValue::RawNumber(right))) => {
+                let message = format!("ANDing together two raw numbers ({} and {})", left, right);
+                return Err(Error::InvalidArgs(message));
+            }
+
+            (Self::VariableBytes(lefts),
+             Self::VariableBytes(rights)) => {
+                if lefts.len() != rights.len() {
+                    let message = format!("ANDing together bytestrings of different lengths ({} and {})", lefts.len(), rights.len());
+                    return Err(Error::InvalidArgs(message));
+                }
+
+                let bytes = lefts.into_iter()
+                                 .zip(rights.into_iter())
+                                 .map(|(l,r)| l & r)
+                                 .collect();
+
+                Ok(Self::VariableBytes(bytes))
+            }
+
+            (a, b) => {
+                let message = format!("ANDing together two weird things ({:?} and {:?})", a, b);
+                return Err(Error::InvalidArgs(message));
+            }
+        }
+    }
+}
+
 
 /// Returns the only argument in the vector if just one is present, or returns
 /// an “invalid arguments” error.
@@ -273,7 +369,8 @@ fn only_arg<'src>(mut args: Vec<Exp<'src>>) -> Result<Exp<'src>, Error<'src>> {
         Ok(args.remove(0))
     }
     else {
-        Err(Error::InvalidArgs)
+        let message = format!("Pass only 1 arg, not {}", args.len());
+        Err(Error::InvalidArgs(message))
     }
 }
 
@@ -293,7 +390,7 @@ pub enum Error<'src> {
     UnknownConstant(UnknownConstant),
 
     /// A function had the wrong type or number of arguments passed to it.
-    InvalidArgs,
+    InvalidArgs(String),
 
     /// The amount of output hit the limit.
     TooMuchOutput,
@@ -308,7 +405,7 @@ impl<'src> fmt::Display for Error<'src> {
             Self::TopLevelBigDecimal(dec)  => write!(f, "{} does not fit in one byte", dec),
             Self::TooBigDecimal(dec)       => write!(f, "{} is too big for target", dec),
             Self::UnknownConstant(uc)      => uc.fmt(f),
-            Self::InvalidArgs              => write!(f, "Invalid argument count"),
+            Self::InvalidArgs(oh)          => write!(f, "Invalid arguments: {}", oh),
             Self::TooMuchOutput            => write!(f, "Too much output!"),
             Self::TooMuchRecursion         => write!(f, "Nested too deeply!"),
         }
