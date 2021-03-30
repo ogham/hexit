@@ -19,18 +19,19 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 use datetime::{LocalDateTime, ISO};
-use regex::Regex;
 
 
 /// The build script entry point.
 fn main() -> io::Result<()> {
-    #![allow(clippy::write_with_newline)]
-
     let usage   = include_str!("src/usage.txt");
     let tagline = "hexit \\1;35m●\\0m hex bytes emitter";
     let url     = "https://hexit.binarystar.systems/";
 
-    let ver = if is_development_version() {
+    let ver =
+        if is_debug_build() {
+            format!("{}\nv{} \\1;31m(pre-release debug build!)\\0m\n\\1;4;34m{}\\0m", tagline, cargo_version(), url)
+        }
+        else if is_development_version() {
             format!("{}\nv{} [{}] built on {} \\1;31m(pre-release!)\\0m\n\\1;4;34m{}\\0m", tagline, cargo_version(), git_hash(), build_date(), url)
         }
         else {
@@ -40,28 +41,50 @@ fn main() -> io::Result<()> {
     // We need to create these files in the Cargo output directory.
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
 
-    // The bits .txt files contain ANSI escape codes, ish.
-    let control_code = Regex::new(r##"\\.+?m"##).unwrap();
-
     // Pretty version text
     let mut f = File::create(&out.join("version.pretty.txt"))?;
-    write!(f, "{}\n", ver.replace("\\", "\x1B["))?;
+    writeln!(f, "{}", convert_codes(&ver))?;
 
     // Bland version text
     let mut f = File::create(&out.join("version.bland.txt"))?;
-    write!(f, "{}\n", control_code.replace_all(&ver, ""))?;
+    writeln!(f, "{}", strip_codes(&ver))?;
 
     // Pretty usage text
     let mut f = File::create(&out.join("usage.pretty.txt"))?;
-    write!(f, "{}\n\n{}\n", tagline.replace("\\", "\x1B["), usage.replace("\\", "\x1B["))?;
+    writeln!(f, "{}", convert_codes(&tagline))?;
+    writeln!(f)?;
+    write!(f, "{}", convert_codes(&usage))?;
 
     // Bland usage text
     let mut f = File::create(&out.join("usage.bland.txt"))?;
-    write!(f, "{}\n\n{}\n", control_code.replace_all(tagline, ""), control_code.replace_all(usage, ""))?;
+    writeln!(f, "{}", strip_codes(&tagline))?;
+    writeln!(f)?;
+    write!(f, "{}", strip_codes(&usage))?;
 
     Ok(())
 }
 
+/// Converts the escape codes in ‘usage.txt’ to ANSI escape codes.
+fn convert_codes(input: &str) -> String {
+    input.replace("\\", "\x1B[")
+}
+
+/// Removes escape codes from ‘usage.txt’.
+fn strip_codes(input: &str) -> String {
+    input.replace("\\0m", "")
+         .replace("\\1m", "")
+         .replace("\\4m", "")
+         .replace("\\31m", "")
+         .replace("\\32m", "")
+         .replace("\\33m", "")
+         .replace("\\1;31m", "")
+         .replace("\\1;32m", "")
+         .replace("\\1;33m", "")
+         .replace("\\1;34m", "")
+         .replace("\\1;35m", "")
+         .replace("\\1;36m", "")
+         .replace("\\1;4;34", "")
+}
 
 /// Retrieve the project’s current Git hash, as a string.
 fn git_hash() -> String {
@@ -74,7 +97,6 @@ fn git_hash() -> String {
             .stdout).trim().to_string()
 }
 
-
 /// Whether we should show pre-release info in the version string.
 ///
 /// Both weekly releases and actual releases are --release releases,
@@ -83,12 +105,15 @@ fn is_development_version() -> bool {
     cargo_version().ends_with("-pre") || env::var("PROFILE").unwrap() == "debug"
 }
 
+/// Whether we are building in debug mode.
+fn is_debug_build() -> bool {
+    env::var("PROFILE").unwrap() == "debug"
+}
 
 /// Retrieves the [package] version in Cargo.toml as a string.
 fn cargo_version() -> String {
     env::var("CARGO_PKG_VERSION").unwrap()
 }
-
 
 /// Formats the current date as an ISO 8601 string.
 fn build_date() -> String {
