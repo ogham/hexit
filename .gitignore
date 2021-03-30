@@ -1,5 +1,6 @@
 # Rust
 /target
+/cargo-timing*.html
 
 # Fuzzing
 /fuzz/target/
