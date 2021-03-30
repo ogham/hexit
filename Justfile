@@ -28,11 +28,11 @@ export HEXIT_DEBUG := ""
 
 # run unit tests
 @test:
-    cargo test --workspace -- --quiet
+    cargo test --lib --bin hexit --workspace -- --quiet
 
 # run unit tests (in release mode)
 @test-release:
-    cargo test --release --workspace --verbose
+    cargo test --lib --bin hexit --release --workspace --verbose
 
 # run mutation tests
 @test-mutation:
