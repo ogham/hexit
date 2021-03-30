@@ -48,7 +48,7 @@ log = "0.4"
 path = "hexit-lang"
 
 [build-dependencies]
-datetime = { version = "0.5.1", default_features = false }
+humantime = "2.0"
 
 [dev-dependencies]
 pretty_assertions = "0.6"

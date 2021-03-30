@@ -17,8 +17,7 @@ use std::env;
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::PathBuf;
-
-use datetime::{LocalDateTime, ISO};
+use std::time::SystemTime;
 
 
 /// The build script entry point.
@@ -115,8 +114,10 @@ fn cargo_version() -> String {
     env::var("CARGO_PKG_VERSION").unwrap()
 }
 
-/// Formats the current date as an ISO 8601 string.
+/// Formats the current date as a year-month-day string.
 fn build_date() -> String {
-    let now = LocalDateTime::now();
-    format!("{}", now.date().iso())
+    let now = SystemTime::now();
+    let mut timestamp = humantime::format_rfc3339(now).to_string();
+    timestamp.truncate(10);  // YYYY-MM-DD is 10 bytes
+    timestamp
 }
