@@ -166,7 +166,6 @@ pub fn run(mode: RunningMode) -> i32 {
             match Program::read(&source) {
                 Ok(_) => {
                     println!("{}: Syntax OK", input);
-                    return exits::SUCCESS;
                 },
                 Err(e) => {
                     println!("{}:{}: syntax error: {}", input, e.source_pos().line_number, e);
@@ -179,6 +178,7 @@ pub fn run(mode: RunningMode) -> i32 {
             let constants = Table::builtin_set();
             let stdout = io::stdout();
             let mut out_handle = stdout.lock();
+            let mut found_any = false;
 
             for (name, value) in constants.all() {
                 if let Some(filter) = &filter {
@@ -195,6 +195,13 @@ pub fn run(mode: RunningMode) -> i32 {
                         writeln!(out_handle, "{} => {} (16-bit)", name, v)
                     }
                 }.unwrap();
+
+                found_any = true;
+            }
+
+            if ! found_any {
+                eprintln!("hexit: No constants found containing {:?}", filter.unwrap());
+                return exits::NO_CONSTANTS_FOUND;
             }
         }
     }
@@ -219,4 +226,7 @@ mod exits {
 
     /// Exit code for when length verification fails.
     pub const LENGTH_VERIFICATION_ERROR: i32 = 4;
+
+    /// Exit code for when the user search for constants and none were found.
+    pub const NO_CONSTANTS_FOUND: i32 = 4;
 }

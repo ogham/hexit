@@ -3,3 +3,9 @@ shell = "hexit --list-constants BGP"
 status = 0
 stdout = { file = "outputs/bgp_constants.txt" }
 stderr = { empty = true }
+
+[[cmd]]
+shell = "hexit --list-constants blarg"
+status = 4
+stdout = { empty = true }
+stderr = { file = "outputs/no_constants.txt" }
