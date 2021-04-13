@@ -317,6 +317,15 @@ mod test {
     use super::*;
     use pretty_assertions::assert_eq;
 
+    // help/version tests
+
+    #[test]
+    fn no_args() {
+        let nothing: &[&OsStr] = &[];
+        assert_eq!(RunningMode::getopts(nothing),
+                   OptionsResult::Help(HelpReason::NoArguments, UseColours::Automatic));
+    }
+
     #[test]
     fn help() {
         assert_eq!(RunningMode::getopts(&[ "--help" ]),
@@ -341,9 +350,157 @@ mod test {
                    OptionsResult::Version(UseColours::Always));
     }
 
+    // list constants tests
+
     #[test]
-    fn fail() {
+    fn list_constants() {
+        assert_eq!(RunningMode::getopts(&[ "--list-constants" ]),
+                   OptionsResult::Ok(RunningMode::ListConstants));
+    }
+
+    // check syntax tests
+
+    #[test]
+    fn check_syntax_input_file() {
+        assert_eq!(RunningMode::getopts(&[ "--check-syntax", "star.hexit" ]),
+                   OptionsResult::Ok(RunningMode::SyntaxCheck(Input::File(PathBuf::from("star.hexit")))));
+    }
+
+    #[test]
+    fn check_syntax_expression() {
+        assert_eq!(RunningMode::getopts(&[ "--check-syntax", "-e", "101" ]),
+                   OptionsResult::Ok(RunningMode::SyntaxCheck(Input::Expression(String::from("101")))));
+    }
+
+    #[test]
+    fn check_syntax_stdin() {
+        assert_eq!(RunningMode::getopts(&[ "--check-syntax", "-" ]),
+                   OptionsResult::Ok(RunningMode::SyntaxCheck(Input::Stdin)));
+    }
+
+    // running tests
+
+    #[test]
+    fn run_input_file() {
+        assert_eq!(RunningMode::getopts(&[ "starchild_numerology.hexit" ]),
+                   OptionsResult::Ok(RunningMode::Run(Options {
+                       input: Input::File(PathBuf::from("starchild_numerology.hexit")),
+                       ..default_args()
+                   })));
+    }
+
+    #[test]
+    fn run_expression() {
+        assert_eq!(RunningMode::getopts(&[ "-e", "be32" ]),
+                   OptionsResult::Ok(RunningMode::Run(Options {
+                       input: Input::Expression(String::from("be32")),
+                       ..default_args()
+                   })));
+    }
+
+    #[test]
+    fn run_stdin() {
+        assert_eq!(RunningMode::getopts(&[ "-" ]),
+                   OptionsResult::Ok(RunningMode::Run(Options {
+                       input: Input::Stdin,
+                       ..default_args()
+                   })));
+    }
+
+    #[test]
+    fn run_with_output() {
+        assert_eq!(RunningMode::getopts(&[ "star.hexit", "-o", "wibble" ]),
+                   OptionsResult::Ok(RunningMode::Run(Options {
+                       input: Input::File(PathBuf::from("star.hexit")),
+                       output: Output::File(PathBuf::from("wibble")),
+                       ..default_args()
+                   })));
+    }
+
+    #[test]
+    fn run_with_formatting_1() {
+        assert_eq!(RunningMode::getopts(&[ "-e", "star.hexit", "--prefix=0x", "--separator= " ]),
+                   OptionsResult::Ok(RunningMode::Run(Options {
+                       input: Input::Expression(String::from("star.hexit")),
+                       format: Format::Formatted(Style {
+                           prefix: Some("0x".into()),
+                           separator: Some(" ".into()),
+                           ..Style::default()
+                       }),
+                       ..default_args()
+                   })));
+    }
+
+    #[test]
+    fn run_with_formatting_2() {
+        assert_eq!(RunningMode::getopts(&[ "star.hexit", "--suffix=;", "--lowercase" ]),
+                   OptionsResult::Ok(RunningMode::Run(Options {
+                       input: Input::File(PathBuf::from("star.hexit")),
+                       format: Format::Formatted(Style {
+                           suffix: Some(";".into()),
+                           case: LetterCase::Lower,
+                           ..Style::default()
+                       }),
+                       ..default_args()
+                   })));
+    }
+
+    #[test]
+    fn run_with_formatting_3() {
+        assert_eq!(RunningMode::getopts(&[ "star.hexit", "--raw" ]),
+                   OptionsResult::Ok(RunningMode::Run(Options {
+                       input: Input::File(PathBuf::from("star.hexit")),
+                       format: Format::Raw,
+                       ..default_args()
+                   })));
+    }
+
+    #[test]
+    fn run_with_verification_length() {
+        assert_eq!(RunningMode::getopts(&[ "starchild_numerology.hexit", "--verify-length", "32" ]),
+                   OptionsResult::Ok(RunningMode::Run(Options {
+                       input: Input::File(PathBuf::from("starchild_numerology.hexit")),
+                       verification: Verification::ExactLength(32),
+                       ..default_args()
+                   })));
+    }
+
+    #[test]
+    fn run_with_verification_multiple() {
+        assert_eq!(RunningMode::getopts(&[ "starchild_numerology.hexit", "--verify-boundary", "8" ]),
+                   OptionsResult::Ok(RunningMode::Run(Options {
+                       input: Input::File(PathBuf::from("starchild_numerology.hexit")),
+                       verification: Verification::Multiple(8),
+                       ..default_args()
+                   })));
+    }
+
+    // errors tests
+
+    #[test]
+    fn invalid_option() {
         assert_eq!(RunningMode::getopts(&[ "--crumbadu" ]),
                    OptionsResult::InvalidOptionsFormat(getopts::Fail::UnrecognizedOption("crumbadu".into())));
+    }
+
+    #[test]
+    fn double_verification() {
+        assert_eq!(RunningMode::getopts(&[ "--verify-length=1", "--verify-boundary=2", "star.hexit" ]),
+                   OptionsResult::InvalidOptions(OptionsError::TooMuchVerification));
+    }
+
+    #[test]
+    fn double_input() {
+        assert_eq!(RunningMode::getopts(&[ "a", "b", ]),
+                   OptionsResult::InvalidOptions(OptionsError::TooManyInputFiles));
+    }
+
+    fn default_args() -> Options {
+        Options {
+            input: Input::Stdin,
+            output: Output::Stdout,
+            format: Format::Formatted(Style::default()),
+            verification: Verification::AnythingGoes,
+        }
     }
 }
