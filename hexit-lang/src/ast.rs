@@ -51,6 +51,9 @@ pub enum Exp<'src> {
 
     /// An ISO 8601 timestamp.
     Timestamp(u32),
+
+    /// A series of individual bits.
+    Bits(Vec<bool>),
 }
 
 /// The name of a function to call.

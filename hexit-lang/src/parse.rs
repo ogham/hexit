@@ -328,6 +328,9 @@ fn parse_form(span: Placed<&'_ str>) -> Result<Exp<'_>, Error<'_>> {
     else if let Ok(ip) = Ipv6Addr::from_str(input) {
         Ok(Exp::IPv6 { bytes: ip.octets() })
     }
+    else if let Some(bit_vec) = parse_bit_form(input) {
+        Ok(Exp::Bits(bit_vec))
+    }
     else if let Ok(time) = humantime::parse_rfc3339_weak(input) {
         let unix_time = time.duration_since(std::time::SystemTime::UNIX_EPOCH).expect("epoch fail");
         Ok(Exp::Timestamp(unix_time.as_secs() as u32))  // TODO: 64-bit timestamps
@@ -336,6 +339,26 @@ fn parse_form(span: Placed<&'_ str>) -> Result<Exp<'_>, Error<'_>> {
         Err(Error::InvalidForm(span))
     }
 }
+
+fn parse_bit_form(input: &str) -> Option<Vec<bool>> {
+    if input.len() > 1 && &input[0..1] == "b" && input[1..].bytes().all(|c| c == b'1' || c == b'0') {
+        let mut bit_vec = Vec::with_capacity(input.len() - 1);
+
+        for byte in input[1..].bytes() {
+            match byte {
+                b'0'  => bit_vec.push(false),
+                b'1'  => bit_vec.push(true),
+                _     => unreachable!(),
+            }
+        }
+
+        Some(bit_vec)
+    }
+    else {
+        None
+    }
+}
+
 
 /// Parse the contents of a quoted string into its canoncial form by handling
 /// escaped backslashes and quotes. This returns a copy of the original string
@@ -544,6 +567,24 @@ mod test_parse_form {
     fn ipv6() {
         assert_eq!(parse_form("::1".at(1, 0)),
                    Ok(Exp::IPv6 { bytes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] }));
+    }
+
+    #[test]
+    fn bits() {
+        assert_eq!(parse_form("b0110110".at(1, 0)),
+                   Ok(Exp::Bits(vec![false, true, true, false, true, true, false])));
+    }
+
+    #[test]
+    fn no_bits() {
+        assert_eq!(parse_form("b".at(1, 0)),
+                   Err(Error::InvalidForm("b".at(1, 0))));
+    }
+
+    #[test]
+    fn no_such_thing_as_two() {
+        assert_eq!(parse_form("b0110112".at(1, 0)),
+                   Err(Error::InvalidForm("b0110112".at(1, 0))));
     }
 
     #[test]

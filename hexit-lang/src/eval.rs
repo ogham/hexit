@@ -91,6 +91,56 @@ impl<'consts> Evaluator<'consts> {
             Exp::Timestamp(unix_time) => {
                 Ok(Value::MultiByte(MultiByteValue::ThirtyTwo(unix_time)))
             }
+
+            Exp::Bits(bit_vec) => {
+                if bit_vec.len() <= 8 {
+                    let mut num = 0_u8;
+
+                    for (index, bit) in bit_vec.into_iter().rev().enumerate() {
+                        if bit {
+                            num += 2_u8.pow(index as u32);
+                        }
+                    }
+
+                    Ok(Value::Byte(num))
+                }
+                else if bit_vec.len() <= 16 {
+                    let mut num = 0_u16;
+
+                    for (index, bit) in bit_vec.into_iter().rev().enumerate() {
+                        if bit {
+                            num += 2_u16.pow(index as u32);
+                        }
+                    }
+
+                    Ok(Value::MultiByte(MultiByteValue::Sixteen(num)))
+                }
+                else if bit_vec.len() <= 32 {
+                    let mut num = 0_u32;
+
+                    for (index, bit) in bit_vec.into_iter().rev().enumerate() {
+                        if bit {
+                            num += 2_u32.pow(index as u32);
+                        }
+                    }
+
+                    Ok(Value::MultiByte(MultiByteValue::ThirtyTwo(num)))
+                }
+                else if bit_vec.len() <= 64 {
+                    let mut num = 0_u64;
+
+                    for (index, bit) in bit_vec.into_iter().rev().enumerate() {
+                        if bit {
+                            num += 2_u64.pow(index as u32);
+                        }
+                    }
+
+                    Ok(Value::MultiByte(MultiByteValue::SixtyFour(num)))
+                }
+                else {
+                    panic!("bit field too wide");
+                }
+            }
         }
     }
 
