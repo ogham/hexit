@@ -1,0 +1,5 @@
+BGP_KEEPALIVE => 4 (8-bit)
+BGP_NOTIFICATION => 3 (8-bit)
+BGP_OPEN => 1 (8-bit)
+BGP_ROUTE_REFRESH => 5 (8-bit)
+BGP_UPDATE => 2 (8-bit)

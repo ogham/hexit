@@ -1,0 +1,5 @@
+[[cmd]]
+shell = "hexit --list-constants BGP"
+status = 0
+stdout = { file = "outputs/bgp_constants.txt" }
+stderr = { empty = true }

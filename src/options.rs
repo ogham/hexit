@@ -23,7 +23,9 @@ pub enum RunningMode {
     SyntaxCheck(Input),
 
     /// Hexit should list the available constants.
-    ListConstants,
+    ListConstants {
+        filter: Option<String>,
+    },
 }
 
 /// The options necessary to run Hexit.
@@ -134,7 +136,12 @@ impl RunningMode {
 
     fn deduce(matches: &getopts::Matches) -> Result<Self, OptionsError> {
         if matches.opt_present("list-constants") {
-            Ok(Self::ListConstants)
+            let filter = match matches.free.len() {
+                0 => None,
+                1 => Some(matches.free[0].clone()),
+                _ => return Err(OptionsError::TooManyConstantSearches),
+            };
+            Ok(Self::ListConstants { filter })
         }
         else if matches.opt_present("check-syntax") {
             let input = Input::deduce(matches)?;
@@ -289,6 +296,9 @@ pub enum OptionsError {
     /// The user provided both verification options.
     TooMuchVerification,
 
+    /// The user provided too many constant substrings to search for.
+    TooManyConstantSearches,
+
     /// The user provided a verification option with an unparseable number.
     InvalidVerificationNumber(ParseIntError),
 }
@@ -305,6 +315,7 @@ impl fmt::Display for OptionsError {
             Self::NoInputFiles                    => write!(f, "No input files"),
             Self::TooManyInputFiles               => write!(f, "Too many input files"),
             Self::TooMuchVerification             => write!(f, "Too much verification"),
+            Self::TooManyConstantSearches         => write!(f, "Too many constant searches"),
             Self::InvalidVerificationNumber(pie)  => write!(f, "Invalid verification: {}", pie),
         }
     }
@@ -355,7 +366,7 @@ mod test {
     #[test]
     fn list_constants() {
         assert_eq!(RunningMode::getopts(&[ "--list-constants" ]),
-                   OptionsResult::Ok(RunningMode::ListConstants));
+                   OptionsResult::Ok(RunningMode::ListConstants { filter: None }));
     }
 
     // check syntax tests
@@ -487,6 +498,12 @@ mod test {
     fn double_verification() {
         assert_eq!(RunningMode::getopts(&[ "--verify-length=1", "--verify-boundary=2", "star.hexit" ]),
                    OptionsResult::InvalidOptions(OptionsError::TooMuchVerification));
+    }
+
+    #[test]
+    fn double_constance() {
+        assert_eq!(RunningMode::getopts(&[ "--list-constants", "A", "B" ]),
+                   OptionsResult::InvalidOptions(OptionsError::TooManyConstantSearches));
     }
 
     #[test]

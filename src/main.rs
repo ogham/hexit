@@ -175,12 +175,18 @@ pub fn run(mode: RunningMode) -> i32 {
             };
         }
 
-        RunningMode::ListConstants => {
+        RunningMode::ListConstants { filter } => {
             let constants = Table::builtin_set();
             let stdout = io::stdout();
             let mut out_handle = stdout.lock();
 
             for (name, value) in constants.all() {
+                if let Some(filter) = &filter {
+                    if ! name.contains(filter) {
+                        continue;
+                    }
+                }
+
                 match value {
                     Constant::Eight(v) => {
                         writeln!(out_handle, "{} => {} (8-bit)", name, v)
