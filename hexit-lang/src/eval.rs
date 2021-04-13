@@ -3,12 +3,12 @@ use std::fmt;
 use log::*;
 
 use crate::ast::*;
-use crate::constants::{ConstantsTable, Constant, UnknownConstant};
+use crate::constants::{Table, Constant, UnknownConstant};
 
 
 /// Evaluates all the expressions in the iterator into a vector of bytes,
 /// returning an error if one occurs without processing the rest.
-pub fn evaluate_exps<'src>(exps: impl IntoIterator<Item=Exp<'src>>, constants: &ConstantsTable, limit: Option<usize>) -> Result<Vec<u8>, Error<'src>> {
+pub fn evaluate_exps<'src>(exps: impl IntoIterator<Item=Exp<'src>>, constants: &Table, limit: Option<usize>) -> Result<Vec<u8>, Error<'src>> {
     let evaluator = Evaluator { constants, limit };
     let mut bytes = Vec::new();
 
@@ -39,7 +39,7 @@ pub enum MultiByteValue<'src> {
 
 
 struct Evaluator<'consts> {
-    constants: &'consts ConstantsTable,
+    constants: &'consts Table,
     limit: Option<usize>,
 }
 
@@ -527,35 +527,35 @@ mod test {
     #[test]
     fn nothing() {
         let exps = vec![];
-        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
+        assert_eq!(evaluate_exps(exps, &Table::empty(), None),
                    Ok(vec![]));
     }
 
     #[test]
     fn one_top_level_byte() {
         let exps = vec![ Exp::Char(0x73) ];
-        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
+        assert_eq!(evaluate_exps(exps, &Table::empty(), None),
                    Ok(vec![ 0x73 ]));
     }
 
     #[test]
     fn top_level_decimal_73() {
         let exps = vec![ Exp::Dec("73") ];
-        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
+        assert_eq!(evaluate_exps(exps, &Table::empty(), None),
                    Ok(vec![ 73 ]));
     }
 
     #[test]
     fn top_level_decimal_255() {
         let exps = vec![ Exp::Dec("255") ];
-        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
+        assert_eq!(evaluate_exps(exps, &Table::empty(), None),
                    Ok(vec![ 255 ]));
     }
 
     #[test]
     fn top_level_decimal_256() {
         let exps = vec![ Exp::Dec("256") ];
-        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), None),
+        assert_eq!(evaluate_exps(exps, &Table::empty(), None),
                    Err(Error::TopLevelBigDecimal(MultiByteValue::RawNumber("256"))));
     }
 
@@ -566,7 +566,7 @@ mod test {
             args: vec![ Exp::Char(0x73), Exp::Char(0x73), Exp::Char(0x73) ]
         } ];
 
-        assert_eq!(evaluate_exps(exps, &ConstantsTable::empty(), Some(1000)),
+        assert_eq!(evaluate_exps(exps, &Table::empty(), Some(1000)),
                    Err(Error::TooMuchOutput));
     }
 }

@@ -21,7 +21,8 @@ use std::io::{self, Write};
 
 use log::*;
 
-use hexit_lang::{Program, ConstantsTable};
+use hexit_lang::Program;
+use hexit_lang::constants::{Table, Constant};
 
 mod colours;
 mod console;
@@ -107,7 +108,7 @@ pub fn run(mode: RunningMode) -> i32 {
                 }
             };
 
-            let constants = ConstantsTable::builtin_set();
+            let constants = Table::builtin_set();
             let bytes = match program.run(&constants, None) {
                 Ok(bs) => bs,
                 Err(e) => {
@@ -175,9 +176,19 @@ pub fn run(mode: RunningMode) -> i32 {
         }
 
         RunningMode::ListConstants => {
-            let constants = ConstantsTable::builtin_set();
+            let constants = Table::builtin_set();
+            let stdout = io::stdout();
+            let mut out_handle = stdout.lock();
+
             for (name, value) in constants.all() {
-                println!("{:?} => {:?}", name, value);
+                match value {
+                    Constant::Eight(v) => {
+                        writeln!(out_handle, "{} => {} (8-bit)", name, v)
+                    }
+                    Constant::Sixteen(v) => {
+                        writeln!(out_handle, "{} => {} (16-bit)", name, v)
+                    }
+                }.unwrap();
             }
         }
     }

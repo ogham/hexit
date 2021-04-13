@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt;
 
 
 /// A constants table maps the names of constants to their values.
-pub struct ConstantsTable {
-    map: HashMap<&'static str, Constant>,
+pub struct Table {
+    map: BTreeMap<&'static str, Constant>,
 }
 
 /// A constant in a table, which is of variable size.
@@ -18,7 +18,7 @@ pub enum Constant {
     Sixteen(u16),
 }
 
-impl ConstantsTable {
+impl Table {
 
     /// Looks up the value of a constant using its name, returning an error if
     /// no such constant exists.
@@ -35,16 +35,16 @@ impl ConstantsTable {
     }
 }
 
-impl ConstantsTable {
+impl Table {
 
     /// Creates a new empty constants table.
     pub fn empty() -> Self {
-        Self { map: HashMap::new() }
+        Self { map: BTreeMap::new() }
     }
 
     /// Creates a new constants table using the built-in set of data.
     pub fn builtin_set() -> Self {
-        let mut map = HashMap::with_capacity(50);
+        let mut map = BTreeMap::new();
 
 
         // BGP stuff
