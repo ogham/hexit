@@ -7,6 +7,8 @@ license = "CC0-1.0/MIT"
 publish = false
 version = "0.1.0-pre"
 
+[lib]
+doctest = false
 
 [features]
 with_mutagen = ["mutagen"]  # needs nightly

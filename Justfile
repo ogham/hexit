@@ -26,13 +26,13 @@ export HEXIT_DEBUG := ""
 # running tests #
 #---------------#
 
-# run unit tests
+# run tests
 @test:
-    cargo test --lib --bin hexit --workspace -- --quiet
+    cargo test --workspace -- --quiet
 
-# run unit tests (in release mode)
+# run tests (in release mode)
 @test-release:
-    cargo test --lib --bin hexit --release --workspace --verbose
+    cargo test --workspace --release --verbose
 
 # run mutation tests
 @test-mutation:

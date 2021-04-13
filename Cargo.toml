@@ -36,6 +36,7 @@ members = [
 [[bin]]
 name = "hexit"
 path = "src/main.rs"
+doctest = false
 
 
 [dependencies]
