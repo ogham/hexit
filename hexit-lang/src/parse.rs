@@ -341,18 +341,24 @@ fn parse_form(span: Placed<&'_ str>) -> Result<Exp<'_>, Error<'_>> {
 }
 
 fn parse_bit_form(input: &str) -> Option<Vec<bool>> {
-    if input.len() > 1 && &input[0..1] == "b" && input[1..].bytes().all(|c| c == b'1' || c == b'0') {
+    if input.starts_with('b') && input[1..].bytes().all(|c| c == b'1' || c == b'0' || c == b'_') {
         let mut bit_vec = Vec::with_capacity(input.len() - 1);
 
         for byte in input[1..].bytes() {
             match byte {
                 b'0'  => bit_vec.push(false),
                 b'1'  => bit_vec.push(true),
+                b'_'  => {/* skip */},
                 _     => unreachable!(),
             }
         }
 
-        Some(bit_vec)
+        if bit_vec.is_empty() {
+            None
+        }
+        else {
+            Some(bit_vec)
+        }
     }
     else {
         None
@@ -576,9 +582,21 @@ mod test_parse_form {
     }
 
     #[test]
+    fn bits_underscore() {
+        assert_eq!(parse_form("b011_0110".at(1, 0)),
+                   Ok(Exp::Bits(vec![false, true, true, false, true, true, false])));
+    }
+
+    #[test]
     fn no_bits() {
         assert_eq!(parse_form("b".at(1, 0)),
                    Err(Error::InvalidForm("b".at(1, 0))));
+    }
+
+    #[test]
+    fn bad_under_bits() {
+        assert_eq!(parse_form("b_".at(1, 0)),
+                   Err(Error::InvalidForm("b_".at(1, 0))));
     }
 
     #[test]

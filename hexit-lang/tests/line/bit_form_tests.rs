@@ -7,6 +7,9 @@ test_eval!(bits_03:       "[b011]" => Ok(vec![ 3 ]));
 test_eval!(bits_255: "[b11111111]" => Ok(vec![ 255 ]));
 test_eval!(bits_0s:  "[b00000000]" => Ok(vec![ 0 ]));
 
+test_eval!(bits_255_u: "[b1111_1111]" => Ok(vec![ 255 ]));
+test_eval!(bits_0s_u:  "[b0000_0000]" => Ok(vec![ 0 ]));
+
 // 1-byte bits, extended
 test_eval!(bits_be16s: "be16[b11111110]" => Ok(vec![ 0, 254 ]));
 test_eval!(bits_le16s: "le16[b11111110]" => Ok(vec![ 254, 0 ]));
