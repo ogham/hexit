@@ -121,3 +121,10 @@ test_eval!(float_le64_p0:            "le64[f+0]" => Ok(vec![ 0x00, 0x00, 0x00, 0
 test_eval!(float_le64_n0:            "le64[f-0]" => Ok(vec![ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 ]));
 test_eval!(float_le64_pinf:         "le64[finf]" => Ok(vec![ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x7f ]));
 test_eval!(float_le64_ninf:        "le64[f-inf]" => Ok(vec![ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0xff ]));
+
+
+// ---- errors ----
+
+test_eval!(top_level_float:     "[f1.2]" => Err(String::from("Floating-point number ‘1.2’ does not fit in one byte")));
+test_eval!(be16_float:      "be16[f1.2]" => Err(String::from("Floating-point number ‘1.2’ is too big for target")));
+test_eval!(le16_float:      "le16[f1.2]" => Err(String::from("Floating-point number ‘1.2’ is too big for target")));

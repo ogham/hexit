@@ -49,7 +49,8 @@ enum State<'src> {
     ReadAlphanum(Placed<&'src str>),
 }
 
-impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> {
+
+impl<'iter, 'src, I> Parser<'iter, 'src, I> {
 
     /// Create a new parser that reads from the given iterator.
     fn new(iter: &'iter mut I) -> Self {
@@ -58,6 +59,10 @@ impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> 
         let function_start = None;
         Self { exps, iter, state, function_start }
     }
+}
+
+#[cfg_attr(all(test, feature = "with_mutagen"), ::mutagen::mutate)]
+impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> {
 
     /// Perform parsing, exhausting the iterator and building up the internal
     /// vector of expressions.
@@ -257,7 +262,7 @@ fn parse_alphanums(span: Placed<&'_ str>) -> Result<Alphanums<'_>, Error<'_>> {
 /// Determines whether this set of alphanums is a valid constant name: it must
 /// start with at least one uppercase letter, and then contain uppercase
 /// letters or digits or underscores.
-#[cfg_attr(all(test, feature = "with_mutagen"), ::mutagen::mutate)]
+#[cfg_attr(all(test, feature = "with_mutagen"), ::mutagen::mutate(mutators = not(lit_int, binop_num)))]
 fn is_constant_name(input: &str) -> bool {
     // by this point, non-ASCII characters should already be handled
     input.len() >= 3 &&
@@ -343,9 +348,12 @@ fn parse_form(span: Placed<&'_ str>) -> Result<Exp<'_>, Error<'_>> {
     }
 }
 
+/// Examines the contents of a form to see if it looks like a series of bits;
+/// if it does, parses it into a vector of bits, and if not, returns `None`.
+#[cfg_attr(all(test, feature = "with_mutagen"), ::mutagen::mutate(mutators = not(lit_int, binop_num)))]
 fn parse_bit_form(input: &str) -> Option<Vec<bool>> {
     if input.starts_with('b') && input[1..].bytes().all(|c| c == b'1' || c == b'0' || c == b'_') {
-        let mut bit_vec = Vec::with_capacity(input.len() - 1);
+        let mut bit_vec = Vec::with_capacity(input.len() - 1);  // skip mutation testing again
 
         for byte in input[1..].bytes() {
             match byte {
@@ -368,8 +376,14 @@ fn parse_bit_form(input: &str) -> Option<Vec<bool>> {
     }
 }
 
+/// Examines the contents of a form to see if it looks like a floating point
+/// form, returning the float part of the input string if it does. This cannot
+/// return the parsed value yet, as we don't know whether it should be an
+/// `f32` or an `f64`.
+#[cfg_attr(all(test, feature = "with_mutagen"), ::mutagen::mutate(mutators = not(lit_int, binop_num)))]
 fn parse_float_form(input: &str) -> Option<&str> {
     if input.starts_with('f') {
+        // TODO: is this the best way to do this?
         let _: f64 = input[1..].parse().ok()?;
         Some(&input[1..])
     }
@@ -377,7 +391,6 @@ fn parse_float_form(input: &str) -> Option<&str> {
         None
     }
 }
-
 
 /// Parse the contents of a quoted string into its canoncial form by handling
 /// escaped backslashes and quotes. This returns a copy of the original string
@@ -623,6 +636,18 @@ mod test_parse_form {
         assert_eq!(parse_form("something_else".at(1, 0)),
                    Err(Error::InvalidForm("something_else".at(1, 0))));
     }
+
+    #[test]
+    fn float_well() {
+        assert_eq!(parse_form("f1.5".at(1, 0)),
+                   Ok(Exp::Float("1.5")));
+    }
+
+    #[test]
+    fn float_badly() {
+        assert_eq!(parse_form("foo".at(1, 0)),
+                   Err(Error::InvalidForm("foo".at(1, 0))));
+    }
 }
 
 
@@ -751,6 +776,34 @@ mod test_edge_cases {
     use super::*;
 
     #[test]
+    fn just_a_form() {
+        let tokens = vec![ Token::Form("32".at(1, 5)) ];
+
+        assert_eq!(parse_tokens(tokens),
+                   Ok(vec![ Exp::Dec("32") ]));
+    }
+
+    #[test]
+    fn a_content_constant() {
+        let tokens = vec![ Token::Alphanum("GPS_QUERY".at(1, 5)) ];
+
+        assert_eq!(parse_tokens(tokens),
+                   Ok(vec![ Exp::Constant { name: "GPS_QUERY" } ]));
+    }
+
+    #[test]
+    fn form_function() {
+        let tokens = vec![ Token::Alphanum("le32".at(1, 0)),
+                           Token::Form("32".at(1, 5)) ];
+
+        assert_eq!(parse_tokens(tokens),
+                   Ok(vec![ Exp::Function {
+                       name: FunctionName::MultiByte(MultiByteType::Le32),
+                       args: vec![ Exp::Dec("32") ],
+                   } ]));
+    }
+
+    #[test]
     fn a_function() {
         let tokens = vec![ Token::Alphanum("x11".at(1, 0)),
                            Token::Open("(".at(1, 0)),
@@ -803,5 +856,14 @@ mod test_edge_cases {
 
         assert_eq!(parse_tokens(tokens),
                    Err(Error::UnclosedFunction("(".at(1, 0))));
+    }
+
+    #[test]
+    fn byte_string() {
+        let tokens = vec![ Token::Alphanum("11".at(1, 0)),
+                           Token::Quoted("bytes".at(1, 2)) ];
+
+        assert_eq!(parse_tokens(tokens),
+                   Ok(vec![ Exp::Char(0x11), Exp::StringLiteral { chars: "bytes".into() } ]));
     }
 }
