@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::fmt;
 
 
 /// A constants table maps the names of constants to their values.
@@ -22,11 +21,8 @@ impl Table {
 
     /// Looks up the value of a constant using its name, returning an error if
     /// no such constant exists.
-    pub fn lookup(&self, name: &str) -> Result<Constant, UnknownConstant> {
-        match self.map.get(name) {
-            Some(value) => Ok(*value),
-            None        => Err(UnknownConstant { name: name.into() }),
-        }
+    pub fn lookup(&self, name: &str) -> Option<Constant> {
+        self.map.get(name).copied()
     }
 
     /// Returns an iterator that yields every known constant’s name and value.
@@ -169,18 +165,5 @@ impl Table {
         map.insert("TCP_CWR",  Constant::Sixteen(0x0080));
 
         Self { map }
-    }
-}
-
-
-/// The error returned when looking up a constant that is not in the table.
-#[derive(PartialEq, Debug)]
-pub struct UnknownConstant {
-    name: String,
-}
-
-impl fmt::Display for UnknownConstant {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Unknown constant ‘{}’", self.name)
     }
 }

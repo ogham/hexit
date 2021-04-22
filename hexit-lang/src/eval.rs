@@ -3,7 +3,7 @@ use std::fmt;
 use log::*;
 
 use crate::ast::*;
-use crate::constants::{Table, Constant, UnknownConstant};
+use crate::constants::{Table, Constant};
 
 
 /// Evaluates all the expressions in the iterator into a vector of bytes,
@@ -59,14 +59,14 @@ impl<'consts> Evaluator<'consts> {
 
             Exp::Constant { name } => {
                 match self.constants.lookup(&name) {
-                    Ok(Constant::Eight(num)) => {
+                    Some(Constant::Eight(num)) => {
                         Ok(Value::Byte(num))
                     }
-                    Ok(Constant::Sixteen(num)) => {
+                    Some(Constant::Sixteen(num)) => {
                         Ok(Value::MultiByte(MultiByteValue::Sixteen(num)))
                     }
-                    Err(e) => {
-                        return Err(Error::UnknownConstant(e));
+                    None => {
+                        return Err(Error::UnknownConstant(name));
                     }
                 }
             }
@@ -499,7 +499,7 @@ impl<'src> fmt::Display for Error<'src> {
         match self {
             Self::TopLevelBigDecimal(dec)  => write!(f, "{} does not fit in one byte", dec),
             Self::TooBigDecimal(dec)       => write!(f, "{} is too big for target", dec),
-            Self::UnknownConstant(uc)      => uc.fmt(f),
+            Self::UnknownConstant(uc)      => write!(f, "Unknown constant ‘{}’", uc),
             Self::InvalidArgs(oh)          => write!(f, "Invalid arguments: {}", oh),
             Self::TooMuchOutput            => write!(f, "Too much output!"),
             Self::TooMuchRecursion         => write!(f, "Nested too deeply!"),
