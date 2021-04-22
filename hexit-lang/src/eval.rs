@@ -143,7 +143,7 @@ impl<'consts> Evaluator<'consts> {
                     Ok(Value::MultiByte(MultiByteValue::SixtyFour(num)))
                 }
                 else {
-                    panic!("bit field too wide");
+                    Err(Error::TopLevelBigDecimal(LargeNumber::FoundBits(bit_vec.len())))
                 }
             }
         }
@@ -528,6 +528,7 @@ pub enum LargeNumber<'src> {
     Known(MultiByteValue),
     FoundRawNumber(&'src str),
     FoundRawFloat(&'src str),
+    FoundBits(usize),
 }
 
 impl<'src> fmt::Display for Error<'src> {
@@ -549,6 +550,7 @@ impl<'src> fmt::Display for LargeNumber<'src> {
             Self::Known(mbv)           => mbv.fmt(f),
             Self::FoundRawNumber(num)  => write!(f, "Decimal number ‘{}’", num),
             Self::FoundRawFloat(num)   => write!(f, "Floating-point number ‘{}’", num),
+            Self::FoundBits(length)    => write!(f, "Bit set of length {}", length),
         }
     }
 }
