@@ -17,6 +17,7 @@ mod bitwise_function_tests;
 mod byte_tests;
 mod constant_tests;
 mod decimal_form_tests;
+mod float_form_tests;
 mod form_tests;
 mod repeat_tests;
 mod string_tests;

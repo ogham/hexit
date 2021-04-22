@@ -331,6 +331,9 @@ fn parse_form(span: Placed<&'_ str>) -> Result<Exp<'_>, Error<'_>> {
     else if let Some(bit_vec) = parse_bit_form(input) {
         Ok(Exp::Bits(bit_vec))
     }
+    else if let Some(float) = parse_float_form(input) {
+        Ok(Exp::Float(float))
+    }
     else if let Ok(time) = humantime::parse_rfc3339_weak(input) {
         let unix_time = time.duration_since(std::time::SystemTime::UNIX_EPOCH).expect("epoch fail");
         Ok(Exp::Timestamp(unix_time.as_secs() as u32))  // TODO: 64-bit timestamps
@@ -359,6 +362,16 @@ fn parse_bit_form(input: &str) -> Option<Vec<bool>> {
         else {
             Some(bit_vec)
         }
+    }
+    else {
+        None
+    }
+}
+
+fn parse_float_form(input: &str) -> Option<&str> {
+    if input.starts_with('f') {
+        let _: f64 = input[1..].parse().ok()?;
+        Some(&input[1..])
     }
     else {
         None

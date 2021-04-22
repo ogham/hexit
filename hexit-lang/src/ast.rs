@@ -52,6 +52,11 @@ pub enum Exp<'src> {
     /// An ISO 8601 timestamp.
     Timestamp(u32),
 
+    /// A floating point number.
+    /// Like the `Dec` variant, this has also not yet been parsed, as we do
+    /// not yet know its storage size.
+    Float(&'src str),
+
     /// A series of individual bits.
     Bits(Vec<bool>),
 }
