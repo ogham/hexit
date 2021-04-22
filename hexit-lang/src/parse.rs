@@ -413,7 +413,7 @@ fn parse_backslashes<'src>(span: Placed<&'src str>) -> Result<Cow<'src, str>, Er
                 c = next_char;
             }
             else {
-                return Err(Error::StringEndsWithBackslash(span));
+                unreachable!("String ends with backslash");
             }
         }
 
@@ -452,8 +452,6 @@ pub enum Error<'src> {
     /// such as `[plum pudding]`.
     InvalidForm(Placed<&'src str>),
 
-    StringEndsWithBackslash(Placed<&'src str>),
-
     /// The parser saw an opening `(` token and started reading
     /// sub-expressions for the function's arguments, but before reading a
     /// closing `)` token, the stream of tokens ran out.
@@ -469,7 +467,6 @@ impl<'src> fmt::Display for Error<'src> {
             Self::InvalidFunctionName(name)   => write!(f, "Invalid function name {:?}", name.contents),
             Self::InvalidRepeatAmount(ra)     => write!(f, "Invalid repeat amount {:?}", ra.contents),
             Self::InvalidForm(form)           => write!(f, "Could not interpret form {:?}", form.contents),
-            Self::StringEndsWithBackslash(_)  => write!(f, "String ends with backslash"),
             Self::UnclosedFunction(_)         => write!(f, "Unclosed function"),
         }
     }
@@ -484,7 +481,6 @@ impl<'src> Error<'src> {
             Self::InvalidFunctionName(name)   => name,
             Self::InvalidRepeatAmount(ra)     => ra,
             Self::InvalidForm(form)           => form,
-            Self::StringEndsWithBackslash(s)  => s,
             Self::UnclosedFunction(open)      => open,
         }
     }
@@ -762,9 +758,9 @@ mod test_parse_quotes {
     }
 
     #[test]
+    #[should_panic]
     fn backslash_end() {
-        assert_eq!(parse_backslashes("back\\".at(1, 0)),
-                   Err(Error::StringEndsWithBackslash("back\\".at(1, 0))));
+        let _ = parse_backslashes("back\\".at(1, 0));
     }
 }
 
