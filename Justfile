@@ -59,7 +59,6 @@ export HEXIT_DEBUG := ""
 
 # lint the code
 @clippy:
-    touch hexit-lang/src/lib.rs
     cargo clippy
 
 # generate a code coverage report using tarpaulin via docker
