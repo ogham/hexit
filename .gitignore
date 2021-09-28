@@ -1,10 +1,14 @@
-# Rust
+# Compilation artefacts
 /target
+
+# Build timing reports
 /cargo-timing*.html
+
+# Coverage reports
+/tarpaulin-report.html
 
 # Fuzzing
 /fuzz/target/
 /fuzz/corpus/
 /fuzz/artifacts/
 fuzz-*.log
-/tarpaulin-report.html
