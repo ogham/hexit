@@ -1,3 +1,6 @@
+//! The parsing stage, which involves taking a series of `Token` values and
+//! building a series of `Exp` values.
+
 use std::borrow::Cow;
 use std::fmt;
 
@@ -26,7 +29,7 @@ struct Parser<'iter, 'src, I> {
     /// The list of expressions that gets built up over time.
     exps: Vec<Exp<'src>>,
 
-    /// The parser's current state.
+    /// The parser’s current state.
     state: State<'src>,
 
     /// If this parser is parsing tokens that occur after the open parenthesis
@@ -52,7 +55,7 @@ enum State<'src> {
 
 impl<'iter, 'src, I> Parser<'iter, 'src, I> {
 
-    /// Create a new parser that reads from the given iterator.
+    /// Creates a new parser that reads from the given iterator.
     fn new(iter: &'iter mut I) -> Self {
         let state = State::Ready;
         let exps = Vec::new();
@@ -376,7 +379,7 @@ fn parse_bit_form(input: &str) -> Option<Vec<bool>> {
 
 /// Examines the contents of a form to see if it looks like a floating point
 /// form, returning the float part of the input string if it does. This cannot
-/// return the parsed value yet, as we don't know whether it should be an
+/// return the parsed value yet, as we don’t know whether it should be an
 /// `f32` or an `f64`.
 #[cfg_attr(all(test, feature = "with_mutagen"), ::mutagen::mutate(mutators = not(lit_int, binop_num)))]
 fn parse_float_form(input: &str) -> Option<&str> {
@@ -451,7 +454,7 @@ pub enum Error<'src> {
     InvalidForm(Placed<&'src str>),
 
     /// The parser saw an opening `(` token and started reading
-    /// sub-expressions for the function's arguments, but before reading a
+    /// sub-expressions for the function’s arguments, but before reading a
     /// closing `)` token, the stream of tokens ran out.
     UnclosedFunction(Placed<&'src str>),
 }
@@ -471,6 +474,9 @@ impl<'src> fmt::Display for Error<'src> {
 }
 
 impl<'src> Error<'src> {
+
+    /// Returns the `Placed` token at the heart of the error, to tell the user
+    /// at which point in the source file the error occurred.
     pub fn source_pos(&self) -> &Placed<&'src str> {
         match self {
             Self::SingleHex(c)                => c,

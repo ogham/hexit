@@ -1,3 +1,15 @@
+//! The evaluation step, which involves taking a series of `Exp` values and
+//! “executing” them, resulting in a series of bytes.
+//!
+//! Execution is performed in a recursive manner: for each top-level `Exp` in
+//! the sequence, it gets evaluated into a vector of bytes, all of which are
+//! concatenated together at the end. If evaluating an expression involves
+//! evaluating sub-expressions, these are converted to bytes too.
+//!
+//! As it is trivially easy to write short programs that produce massive
+//! amounts of output (such as `x999(x999(x999(FF)))`, there is a customisable
+//! limit for how long the complete output is allowed to get.
+
 use std::fmt;
 
 use log::*;
@@ -20,17 +32,51 @@ pub fn evaluate_exps<'src>(exps: impl IntoIterator<Item=Exp<'src>>, constants: &
     Ok(bytes)
 }
 
+/// The internal “evaluation environment”, which holds the values that get
+/// looked up during evaluation.
+struct Evaluator<'consts> {
+    constants: &'consts Table,
+    limit: Option<usize>,
+}
 
-/// A “value in flight”.
+/// A “value in flight”. Even though Hexit produces bytes as its output, it
+/// still has to deal with values before the width of the output type is
+/// known. This is similar to the `{integer}` or `{float}` types in Rust, as
+/// opposed to `u32` or `f64`.
 #[derive(PartialEq, Debug)]
 enum Value<'src> {
+
+    /// A value that is known to be an individual byte. This can be printed
+    /// directly, passed to a bitwise or repeat function, or made wider.
     Byte(u8),
+
+    /// A value that is known to be a series of bytes with a known length.
+    /// This can be printed directly, and passed to a bitwise or repeat
+    /// function, but cannot be made wider or narrower (as it does not
+    /// strictly have an “endianness” — it’s a sequence, not a number).
     VariableBytes(Vec<u8>),
+
+    /// A value that is known to have a width of a certain size. This cannot
+    /// be printed directly (as the endianness is not known) nor passed to a
+    /// repeat function, but it can be passed to a bitwise function, and made
+    /// wider.
     MultiByte(MultiByteValue),
+
+    /// A numeric value where the width is not yet known. This cannot be
+    /// printed directly (as the size and endianness is not known) nor passed
+    /// to bitwise or repeat functions, but can be given a width and
+    /// endianness.
     RawNumber(&'src str),
+
+    /// A floating-point value where the width is not yet known. This cannot be
+    /// printed directly (as the size and endianness is not known) nor passed
+    /// to bitwise or repeat functions, but can be given a width and
+    /// endianness, as long as the width is one of the floating-point widths.
     RawFloat(&'src str),
 }
 
+/// A value that is known to have a width of a certain size. This is its own
+/// type to simplify error handling.
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum MultiByteValue {
     Sixteen(u16),
@@ -39,13 +85,10 @@ pub enum MultiByteValue {
 }
 
 
-struct Evaluator<'consts> {
-    constants: &'consts Table,
-    limit: Option<usize>,
-}
-
 impl<'consts> Evaluator<'consts> {
 
+    /// Evaluates this expression by converting it into a “value in flight”,
+    /// which possibly involves evaluating the expression’s sub-expressions.
     fn evaluate_exp<'src>(&self, exp: Exp<'src>) -> Result<Value<'src>, Error<'src>> {
         trace!("Evaluating expression -> {:#?}", exp);
 
@@ -149,6 +192,9 @@ impl<'consts> Evaluator<'consts> {
         }
     }
 
+    /// Runs the function with the given name, using the list of expressions
+    /// as its arguments. The arguments have not yet been evaluated
+    /// themselves, so that the number of arguments can first be checked.
     fn run_function<'src>(&self, name: FunctionName, args: Vec<Exp<'src>>) -> Result<Value<'src>, Error<'src>> {
         match name {
             FunctionName::MultiByte(MultiByteType::Be16) => {
@@ -247,6 +293,11 @@ impl<'consts> Evaluator<'consts> {
 
 
 impl<'src> Value<'src> {
+
+    /// Converts this “value in flight” into a series of bytes, or return an
+    /// error if the conversion is not possible. This is used when printing
+    /// bytes at the top level, or converting values to sequences for a
+    /// repetition function.
     fn eval_to_bytes(self) -> Result<Vec<u8>, Error<'src>> {
         match self {
             Self::Byte(byte) => {
@@ -275,6 +326,11 @@ impl<'src> Value<'src> {
         }
     }
 
+    /// Converts this “value in flight” into a 2-byte value, using the given
+    /// function to perform the conversion with a certain endianness, or
+    /// return an error if the conversion is not possible. This is used when
+    /// passing a value to the `be16` or `le16` functions. Values cannot be
+    /// made more narrow.
     fn to_two_variable_bytes(self, endianify: impl Fn(u16) -> [u8; 2]) -> Result<Self, Error<'src>> {
         let bytes = match self {
             Self::Byte(b) => {
@@ -312,6 +368,11 @@ impl<'src> Value<'src> {
         Ok(Value::VariableBytes(bytes.to_vec()))
     }
 
+    /// Converts this “value in flight” into a 4-byte value, using the given
+    /// function to perform the conversion with a certain endianness, or
+    /// return an error if the conversion is not possible. This is used when
+    /// passing a value to the `be32` or `le32` functions. Values cannot be
+    /// made more narrow.
     fn to_four_variable_bytes(self, endianify: impl Fn(u32) -> [u8; 4], flendianify: impl Fn(f32) -> [u8; 4]) -> Result<Self, Error<'src>> {
         let bytes = match self {
             Self::Byte(b) => {
@@ -354,6 +415,10 @@ impl<'src> Value<'src> {
         Ok(Value::VariableBytes(bytes.to_vec()))
     }
 
+    /// Converts this “value in flight” into an 8-byte value, using the given
+    /// function to perform the conversion with a certain endianness, or
+    /// return an error if the conversion is not possible. This is used when
+    /// passing a value to the `be64` or `le64` functions.
     fn to_eight_variable_bytes(self, endianify: impl Fn(u64) -> [u8; 8], flendianify: impl Fn(f64) -> [u8; 8]) -> Result<Self, Error<'src>> {
         let bytes = match self {
             Self::Byte(b) => {
@@ -395,6 +460,11 @@ impl<'src> Value<'src> {
         Ok(Value::VariableBytes(bytes.to_vec()))
     }
 
+    /// Applies the given bitwise function to this “value in flight”, with the
+    /// given value as the other operand (which has already been evaluated).
+    /// Returns an error if the two types are incompatible (such as a 32-bit
+    /// and 16-bit number, or byte sequences of different lengths) or are raw
+    /// (a number or float where the size is not yet known).
     fn apply_bitwise(self, next_val: Self, bitwise_op: BitwiseFold) -> Result<Self, Error<'src>> {
         match (self, next_val) {
             (Self::Byte(left),
@@ -507,7 +577,7 @@ pub enum Error<'src> {
     /// `[9999999]`.
     TopLevelBigDecimal(LargeNumber<'src>),
 
-    /// A decimal number was too big for its target, such as `be16[99999999]`.
+    /// A decimal number was too big for its target.
     TooBigDecimal(LargeNumber<'src>),
 
     /// A constant value was referenced that does not exist.
@@ -523,11 +593,22 @@ pub enum Error<'src> {
     TooMuchRecursion,
 }
 
+/// A number that was too big for its target. This is used in error handling.
 #[derive(PartialEq, Debug)]
 pub enum LargeNumber<'src> {
+
+    /// A value with a known size was too big, such as `be16(be32[1234])`.
+    /// Hexit does not narrow values, so this is an error.
     Known(MultiByteValue),
+
+    /// A raw decimal number was too big, such as `be16[99999999]`.
     FoundRawNumber(&'src str),
+
+    /// A raw floating-point number was put in a `be16` or `le16`.
+    /// Floating-point numbers can only be put in 32-bit or 64-bit widths.
     FoundRawFloat(&'src str),
+
+    /// A number of bits were too many, such as `be16[b0101_0101_0101_0101_1].
     FoundBits(usize),
 }
 

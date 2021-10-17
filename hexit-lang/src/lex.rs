@@ -1,3 +1,5 @@
+//! The lexical analysis step, or tokenising. This involves
+
 use std::fmt;
 use std::str::CharIndices;
 
@@ -35,7 +37,7 @@ struct Lexer<'src> {
     /// get read from the iterator.
     column_number: usize,
 
-    /// The lexer's current state, which changes as characters are read.
+    /// The lexer’s current state, which changes as characters are read.
     state: State,
 
     /// The vector of tokens that gets built up.
@@ -63,7 +65,8 @@ enum State {
     ReadForm { anchor: Anchor },
 
     /// We have just read the opening `"` quote of a quoted string, or one of
-    /// the characters within the string.
+    /// the characters within the string. We also need to store whether we
+    /// have just read a backslash, in order to handle nested quotes.
     ReadQuote { anchor: Anchor, backslash: bool },
 
     /// We are done parsing this line, so no further token should be produced.
@@ -73,7 +76,14 @@ enum State {
 /// A stored position in the source string.
 #[derive(Debug, Copy, Clone)]
 struct Anchor {
+
+    /// The number of bytes into the source string. This is used to index the
+    /// string in order to produce `Placed` slices.
     index: usize,
+
+    /// The number of characters into the source string, taking into account
+    /// possibly multi-byte characters. This gets shown to the user in case of
+    /// an error.
     column_number: usize,
 }
 
@@ -90,7 +100,7 @@ impl<'src> Lexer<'src> {
         Self { line_number, input_source, iter, column_number, state, tokens }
     }
 
-    /// Analyse the next character from the iterator, possibly changing the
+    /// Analyses the next character from the iterator, possibly changing the
     /// internal state or pushing one or two tokens onto the internal vector.
     ///
     /// Returns `true` if there are more characters to read, `false` if there
@@ -264,6 +274,8 @@ impl<'src> Lexer<'src> {
         }
     }
 
+    /// Returns a `Placed` string slice of the original input string between
+    /// the given anchor and end position.
     fn span(&self, anchor: Anchor, to: usize) -> Placed<&'src str> {
         Placed {
             contents: &self.input_source[ anchor.index .. to ],
@@ -272,6 +284,8 @@ impl<'src> Lexer<'src> {
         }
     }
 
+    /// Returns a `Placed` string slice of the original input string that
+    /// starts at the given anchor and lasts until the end of the string.
     fn span_rest(&self, anchor: Anchor) -> Placed<&'src str> {
         Placed {
             contents: &self.input_source[ anchor.index .. ],
@@ -307,6 +321,9 @@ impl<'src> fmt::Display for Error<'src> {
 }
 
 impl<'src> Error<'src> {
+
+    /// Returns the `Placed` position that an error occurred in the source
+    /// file. This gets shown to the user.
     pub fn source_pos(&self) -> &Placed<&'src str> {
         match self {
             Self::UnknownCharacter(c) => c,
@@ -315,7 +332,6 @@ impl<'src> Error<'src> {
         }
     }
 }
-
 
 
 #[cfg(test)]

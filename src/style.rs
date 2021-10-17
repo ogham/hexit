@@ -1,3 +1,6 @@
+//! Converting the series of bytes that result from evaluating a Hexit program
+//! to characters to print as output.
+
 use std::io::{self, Write};
 
 

@@ -1,3 +1,5 @@
+//! The colours that are used on the command-line for various parts of the UI.
+
 use ansi_term::Style;
 use ansi_term::Color::*;
 

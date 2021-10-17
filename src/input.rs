@@ -1,3 +1,5 @@
+//! The input sources that a Hexit program can be read from.
+
 use std::fs::File;
 use std::fmt;
 use std::io::{self, Read};
@@ -31,6 +33,9 @@ impl fmt::Display for Input {
 }
 
 impl Input {
+
+    /// Reads the complete Hexit program from the input source, returning it
+    /// as a `String`, or an I/O error if something goes wrong reading it.
     pub fn read(&self) -> io::Result<String> {
         match self {
             Self::Expression(input_string) => {

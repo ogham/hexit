@@ -1,3 +1,7 @@
+//! The reading stage, which involves taking a string slice, running it
+//! through the lexing and parsing stages, and removing front and back
+//! comments before returning it as an `Exp`.
+
 use std::fmt;
 
 use log::*;

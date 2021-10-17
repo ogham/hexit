@@ -1,4 +1,4 @@
-pub type OutputLength = usize;
+//! Verifying that the output’s length matches a property before printing it.
 
 
 /// Hexit can be run with some **verification** that can be run after all the
@@ -18,6 +18,9 @@ pub enum Verification {
     /// Hexit should not verify anything and just print the output.
     AnythingGoes,
 }
+
+/// The number of bytes that get produced as a result of running Hexit.
+pub type OutputLength = usize;
 
 impl Verification {
 

@@ -1,3 +1,6 @@
+//! The abstract syntax tree type, which gets produced by the parser and
+//! interpreted by the evaluator.
+
 use std::borrow::Cow;
 
 

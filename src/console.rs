@@ -1,3 +1,5 @@
+//! Examining the console environment to determine whether to use colours.
+
 use crate::colours::Colours;
 
 

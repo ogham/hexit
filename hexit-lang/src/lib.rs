@@ -2,6 +2,14 @@
 //! lex and parse Hexit code from strings and evaluate it into a vector of
 //! bytes. Things like reading from files, displaying errors, and formatting
 //! the bytes into text is done in the ‘hexit’ crate.
+//!
+//! Interpreting a Hexit program is done in two steps, the first of which has
+//! two steps itself:
+//!
+//! 1. First, the program gets “read” from a string — it gets tokenised into a
+//!    series of `Token` values, which get parsed into a series of `Exp` values.
+//! 2. Next, once all of the input program has been read, it gets “run” — the
+//!    expressions are evaluated, resulting in a series of bytes.
 
 #![warn(future_incompatible)]
 #![warn(missing_copy_implementations)]

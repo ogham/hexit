@@ -1,3 +1,6 @@
+//! The token type. Values of this type get created by the lexer, and are
+//! consumed by the parser.
+
 use crate::pos::Placed;
 
 

@@ -1,3 +1,5 @@
+//! Command-line option parsing and the representation of the options.
+
 use std::ffi::OsStr;
 use std::fmt;
 use std::num::ParseIntError;
@@ -24,6 +26,8 @@ pub enum RunningMode {
 
     /// Hexit should list the available constants.
     ListConstants {
+
+        /// If given, only list constants that contain this substring.
         filter: Option<String>,
     },
 }
