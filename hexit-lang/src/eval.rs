@@ -59,7 +59,7 @@ impl<'consts> Evaluator<'consts> {
             }
 
             Exp::Constant { name } => {
-                match self.constants.lookup(&name) {
+                match self.constants.lookup(name) {
                     Some(Constant::Eight(num)) => {
                         Ok(Value::Byte(num))
                     }

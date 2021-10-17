@@ -50,15 +50,15 @@ fn main() -> io::Result<()> {
 
     // Pretty usage text
     let mut f = File::create(&out.join("usage.pretty.txt"))?;
-    writeln!(f, "{}", convert_codes(&tagline))?;
+    writeln!(f, "{}", convert_codes(tagline))?;
     writeln!(f)?;
-    write!(f, "{}", convert_codes(&usage))?;
+    write!(f, "{}", convert_codes(usage))?;
 
     // Bland usage text
     let mut f = File::create(&out.join("usage.bland.txt"))?;
-    writeln!(f, "{}", strip_codes(&tagline))?;
+    writeln!(f, "{}", strip_codes(tagline))?;
     writeln!(f)?;
-    write!(f, "{}", strip_codes(&usage))?;
+    write!(f, "{}", strip_codes(usage))?;
 
     Ok(())
 }

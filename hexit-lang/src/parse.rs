@@ -57,7 +57,7 @@ impl<'iter, 'src, I> Parser<'iter, 'src, I> {
         let state = State::Ready;
         let exps = Vec::new();
         let function_start = None;
-        Self { exps, iter, state, function_start }
+        Self { iter, exps, state, function_start }
     }
 }
 
@@ -76,7 +76,7 @@ impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> 
                 }
 
                 (Token::Alphanum(_), State::ReadAlphanum(_)) => {
-                    unreachable!()
+                    unreachable!();
                 }
 
                 (Token::Open(open), State::ReadAlphanum(slice)) => {
@@ -102,23 +102,21 @@ impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> 
                     if self.function_start.is_none() {
                         return Err(Error::StrayCharacter(span));
                     }
-                    else {
-                        self.state = State::Ready;
-                        self.function_start = None;  // skip check below
-                        break;
-                    }
+
+                    self.state = State::Ready;
+                    self.function_start = None;  // skip check below
+                    break;
                 }
                 (Token::Close(span), State::ReadAlphanum(slice)) => {
                     if self.function_start.is_none() {
                         return Err(Error::StrayCharacter(span));
                     }
-                    else {
-                        let alphanums = parse_alphanums(slice)?;
-                        self.add(alphanums, slice)?;
-                        self.state = State::Ready;
-                        self.function_start = None;  // skip check below
-                        break;
-                    }
+
+                    let alphanums = parse_alphanums(slice)?;
+                    self.add(alphanums, slice)?;
+                    self.state = State::Ready;
+                    self.function_start = None;  // skip check below
+                    break;
                 }
 
                 (Token::Form(form_slice), State::ReadAlphanum(alpha_slice)) => {
@@ -140,7 +138,7 @@ impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> 
 
                 (Token::Quoted(slice), State::Ready) => {
                     let chars = parse_backslashes(slice)?;
-                    self.exps.push(Exp::StringLiteral { chars })
+                    self.exps.push(Exp::StringLiteral { chars });
                 }
 
                 (Token::Quoted(quote_slice), State::ReadAlphanum(alpha_slice)) => {
@@ -382,10 +380,10 @@ fn parse_bit_form(input: &str) -> Option<Vec<bool>> {
 /// `f32` or an `f64`.
 #[cfg_attr(all(test, feature = "with_mutagen"), ::mutagen::mutate(mutators = not(lit_int, binop_num)))]
 fn parse_float_form(input: &str) -> Option<&str> {
-    if input.starts_with('f') {
+    if let Some(float_chars) = input.strip_prefix('f') {
         // TODO: is this the best way to do this?
-        let _: f64 = input[1..].parse().ok()?;
-        Some(&input[1..])
+        let _: f64 = float_chars.parse().ok()?;
+        Some(float_chars)
     }
     else {
         None
