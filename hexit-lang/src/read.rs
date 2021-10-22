@@ -22,7 +22,7 @@ pub fn tokenise_and_parse<'src>(input_source: &'src str) -> Result<Vec<ast::Exp<
         trace!("Tokens: {:#?}", line_tokens);
 
         if let Some(last_colon_index) = line_tokens.iter().rposition(|t| t.is_colon()) {
-            line_tokens.drain(.. last_colon_index + 1);
+            line_tokens.drain(..=last_colon_index);
         }
 
         if let Some(first_invalid_char) = line_tokens.iter().find_map(|t| t.as_stray()) {
