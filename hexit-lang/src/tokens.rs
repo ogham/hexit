@@ -26,4 +26,34 @@ pub enum Token<'src> {
 
     /// A quoted string, such as `"vorbis"`.
     Quoted(Placed<&'src str>),
+
+    /// Any other character, such as `é`. This is an error if encountered
+    /// outside of a front comment.
+    Stray(Placed<&'src str>),
+}
+
+impl<'src> Token<'src> {
+
+    /// Returns whether this token is the colon, the front comment separator.
+    /// This gets used when removing the front comment part of an input line.
+    pub fn is_colon(&self) -> bool {
+        if let Token::Stray(placed) = self {
+            if placed.contents == ":" {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Returns the contents of a stray token, if this token is one. This gets
+    /// used to determine whether to error out with a misplaced character.
+    pub fn as_stray(&self) -> Option<Placed<&'src str>> {
+        if let Token::Stray(placed) = self {
+            Some(*placed)
+        }
+        else {
+            None
+        }
+    }
 }

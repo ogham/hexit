@@ -242,7 +242,8 @@ impl<'src> Lexer<'src> {
             (c, _) => {
                 let char_position = Anchor { index, column_number };
                 let char_string = self.span(char_position, index + c.len_utf8());
-                return Err(Error::UnknownCharacter(char_string));
+                self.tokens.push(Token::Stray(char_string));
+                self.state = State::Ready;
             }
         }
 
@@ -300,9 +301,6 @@ impl<'src> Lexer<'src> {
 #[derive(PartialEq, Debug)]
 pub enum Error<'src> {
 
-    /// There was an unknown character in the input.
-    UnknownCharacter(Placed<&'src str>),
-
     /// The lexer was expecting a closing `"` quote when the input ended.
     UnclosedString(Placed<&'src str>),
 
@@ -313,7 +311,6 @@ pub enum Error<'src> {
 impl<'src> fmt::Display for Error<'src> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnknownCharacter(c)  => write!(f, "Unknown character {:?}", c.contents),
             Self::UnclosedString(s)    => write!(f, "Unclosed string {:?}", s.contents),
             Self::UnclosedForm(o)      => write!(f, "Unclosed form {:?}", o.contents),
         }
@@ -326,7 +323,6 @@ impl<'src> Error<'src> {
     /// file. This gets shown to the user.
     pub fn source_pos(&self) -> &Placed<&'src str> {
         match self {
-            Self::UnknownCharacter(c) => c,
             Self::UnclosedString(s)   => s,
             Self::UnclosedForm(form)  => form,
         }
@@ -349,19 +345,19 @@ mod test {
     #[test]
     fn stray() {
         assert_eq!(lex_source(0, "&"),
-                   Err(Error::UnknownCharacter("&".at(0, 0))));
+                   Ok(vec![ Token::Stray("&".at(0, 0)) ]));
     }
 
     #[test]
     fn utf8() {
         assert_eq!(lex_source(0, "é"),
-                   Err(Error::UnknownCharacter("é".at(0, 0))));
+                   Ok(vec![ Token::Stray("é".at(0, 0)) ]));
     }
 
     #[test]
     fn utf8_column() {
         assert_eq!(lex_source(0, "Aé"),
-                   Err(Error::UnknownCharacter("é".at(0, 1))));
+                   Ok(vec![ Token::Stray("é".at(0, 1)) ]));
     }
 
     #[test]

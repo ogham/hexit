@@ -161,6 +161,10 @@ impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> 
                     self.add(alphanums, slice)?;
                     self.state = State::Ready;
                 }
+
+                (Token::Stray(_), _) => {
+                    unreachable!("Stray token not filtered out by read");
+                }
             }
 
             trace!("Parse state is {:?}", self.state);

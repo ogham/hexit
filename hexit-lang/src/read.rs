@@ -15,16 +15,20 @@ use crate::{ast, lex, parse, pos, tokens};
 pub fn tokenise_and_parse<'src>(input_source: &'src str) -> Result<Vec<ast::Exp<'src>>, Error<'src>> {
     let mut all_tokens = Vec::new();
 
-    for (line_index, mut input_line) in input_source.lines().enumerate() {
-        if let Some(colon_pos) = input_line.find(':') {
-            if input_line[ .. colon_pos ].bytes().all(|b| b.is_ascii_whitespace() || b.is_ascii_alphanumeric()) {
-                input_line = &input_line[ colon_pos + 1 .. ];
-            }
+    for (line_index, input_line) in input_source.lines().enumerate() {
+        let line_number = line_index + 1;
+
+        let mut line_tokens = lex::lex_source(line_number, input_line).map_err(Error::Lex)?;
+        trace!("Tokens: {:#?}", line_tokens);
+
+        if let Some(last_colon_index) = line_tokens.iter().rposition(|t| t.is_colon()) {
+            line_tokens.drain(.. last_colon_index + 1);
         }
 
-        let line_number = line_index + 1;
-        let line_tokens = lex::lex_source(line_number, input_line).map_err(Error::Lex)?;
-        trace!("Tokens: {:#?}", line_tokens);
+        if let Some(first_invalid_char) = line_tokens.iter().find_map(|t| t.as_stray()) {
+            return Err(Error::UnknownChar(first_invalid_char));
+        }
+
         all_tokens.extend(line_tokens);
         all_tokens.push(tokens::Token::Whitespace);
     }
@@ -37,6 +41,7 @@ pub fn tokenise_and_parse<'src>(input_source: &'src str) -> Result<Vec<ast::Exp<
 /// A problem that occurred with the user’s input during parsing or lexing.
 #[derive(PartialEq, Debug)]
 pub enum Error<'src> {
+    UnknownChar(pos::Placed<&'src str>),
     Lex(lex::Error<'src>),
     Parse(parse::Error<'src>),
 }
@@ -44,8 +49,9 @@ pub enum Error<'src> {
 impl<'src> fmt::Display for Error<'src> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Lex(le)    => le.fmt(f),
-            Self::Parse(pe)  => pe.fmt(f),
+            Self::UnknownChar(c)  => write!(f, "Unknown character {:?}", c.contents),
+            Self::Lex(le)         => le.fmt(f),
+            Self::Parse(pe)       => pe.fmt(f),
         }
     }
 }
@@ -53,8 +59,9 @@ impl<'src> fmt::Display for Error<'src> {
 impl<'src> Error<'src> {
     pub fn source_pos(&self) -> &pos::Placed<&'src str> {
         match self {
-            Self::Lex(le)    => le.source_pos(),
-            Self::Parse(pe)  => pe.source_pos(),
+            Self::UnknownChar(c)  => c,
+            Self::Lex(le)         => le.source_pos(),
+            Self::Parse(pe)       => pe.source_pos(),
         }
     }
 }
@@ -64,6 +71,8 @@ impl<'src> Error<'src> {
 mod test {
     use super::*;
     use crate::pos::At;
+
+    // empty and spaces tests
 
     #[test]
     fn empty() {
@@ -83,6 +92,7 @@ mod test {
                    Ok(vec![]));
     }
 
+    // parse and lex error tests
 
     #[test]
     fn lonely() {
@@ -103,12 +113,6 @@ mod test {
     }
 
     #[test]
-    fn atrophy() {
-        assert_eq!(tokenise_and_parse("\\"),
-                   Err(Error::Lex(lex::Error::UnknownCharacter("\\".at(1, 0)))));
-    }
-
-    #[test]
     fn closure() {
         assert_eq!(tokenise_and_parse(")"),
                    Err(Error::Parse(parse::Error::StrayCharacter(")".at(1, 0)))));
@@ -118,5 +122,49 @@ mod test {
     fn exordium() {
         assert_eq!(tokenise_and_parse("["),
                    Err(Error::Lex(lex::Error::UnclosedForm("[".at(1, 0)))));
+    }
+
+    #[test]
+    fn weird_nested_form() {
+        assert_eq!(tokenise_and_parse("[[:alpha:]]"),
+                   Err(Error::UnknownChar("]".at(1, 10))));
+    }
+
+    // front comment stripping tests
+
+    #[test]
+    fn front_comment() {
+        assert_eq!(tokenise_and_parse("Magic number: 03"),
+                   Ok(vec![ ast::Exp::Char(3) ]));
+    }
+
+    #[test]
+    fn front_comment_containing_chars() {
+        assert_eq!(tokenise_and_parse("Magic••••number: 03"),
+                   Ok(vec![ ast::Exp::Char(3) ]));
+    }
+
+    #[test]
+    fn front_comment_containing_form() {
+        assert_eq!(tokenise_and_parse("[Magic] number: 03"),
+                   Ok(vec![ ast::Exp::Char(3) ]));
+    }
+
+    #[test]
+    fn front_comment_containing_form_containing_colon() {
+        assert_eq!(tokenise_and_parse("[[:alpha:]] number: 03"),
+                   Ok(vec![ ast::Exp::Char(3) ]));
+    }
+
+    #[test]
+    fn front_comment_containing_string() {
+        assert_eq!(tokenise_and_parse("\"Magic\" number: 03"),
+                   Ok(vec![ ast::Exp::Char(3) ]));
+    }
+
+    #[test]
+    fn front_comment_containing_string_containing_colon() {
+        assert_eq!(tokenise_and_parse("\"Magic:::number\": 03"),
+                   Ok(vec![ ast::Exp::Char(3) ]));
     }
 }
