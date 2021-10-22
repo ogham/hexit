@@ -1,0 +1,108 @@
+# TLS Client Hello example
+# ========================
+#
+# In this example, we build the first packet sent by the client in a TLS
+# handshake, “Client Hello”.
+#
+# There’s quite a lot you have to put in a Client Hello packet; our packet
+# will contain a bunch of commonly-used cipher suites, signature algorithms,
+# and ALPN targets. The domain name (‘bsago.me’) is also contained within the
+# packet, so if you want to send it to another Web server, you’ll have to
+# modify that string as well as the three Length fields that would be affected
+# by the change.
+#
+# To run using ‘netcat’ on the command-line, tell Hexit to output as raw
+# bytes, then pipe the output to ‘nc’ or ‘netcat’ that sends its input to a
+# Web server. ‘netcat’ will print the response as raw bytes, so we must
+# convert it back to hexadecimal with ‘hexyl’. It will then wait around for
+# more input, so you can kill it once a response is received.
+#
+#   $ hexit tls-client-hello.hexit --raw | nc bsago.me 443 | hexyl
+#
+# If you do not have ‘hexyl’ installed, ‘xxd’ will also work OK.
+#
+# In the response, you should see a _lot_ of output, as the server responds
+# with the ‘Server Hello’, ‘Certificate’, ‘Server Key Exchange’, and ‘Server
+# Hello Done’ parts of the protocol, which is as many as it can perform before
+# waiting for further input. You should be able to spot a couple snippets of
+# text contained in the certificates in there too.
+#
+# To see a parsed version of the request and the response, you can run
+# ‘tshark’, the command-line version of Wireshark, in the background.
+#
+#   $ tshark -O tls
+
+
+# ---- TLS packet header ----
+
+Content type: [22] # Handshake
+Version: 03 01 # TLS 1.0
+Length: be16[136]
+
+
+# ---- Client Hello ----
+
+Handshake type: [1] # Client Hello
+Length: 00 be16[132] # this is a 24-bit int for some reason
+Version: 03 03 # TLS 1.2
+
+“Random” data:
+x32(F5)
+
+Session ID length: [0]
+# (we skip the Session ID)
+
+Cipher suites length: be16[12]
+Cipher suites:
+ 1: 13 01 # TLS_AES_128_GCM_SHA256
+ 2: 13 02 # TLS_AES_256_GCM_SHA384
+ 3: 13 03 # TLS_CHACHA20_POLY1305_SHA256
+ 4: C0 2B # TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+ 5: C0 2C # TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+ 6: C0 2F # TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+
+Compression methods length: [1]
+Compression methods: 00 # null
+
+
+# ---- Client Hello extensions ----
+
+Extensions combined length: be16[79]
+
+Extension type: 00 00 # server_name
+Extension length: be16[13]
+Server name list length: be16[11]
+ 1: Server name type: 00 # Hostname
+    Server name: be16[8] "bsago.me"
+
+Extension type: 00 0b # ec_point_formats
+Extension length: be16[2]
+Formats list length: [1]
+ 1: EC point format: 00 # uncompressed
+
+Extension type: 00 0a # supported_groups
+Extension length: be16[8]
+Groups list length: be16[6]
+ 1: 00 1d # x25519
+ 2: 00 17 # secp256r1
+ 3: 00 18 # secp384r1
+
+Extension type: 00 0d # signature_algorithms
+Extension length: be16[22]
+Algorithms list length: be16[20]
+ 1: 04 01 # rsa_pkcs1_sha256
+ 2: 05 01 # rsa_pkcs1_sha384
+ 3: 06 01 # rsa_pkcs1_sha512
+ 4: 04 03 # ecdsa_secp256r1_sha256
+ 5: 05 03 # ecdsa_secp384r1_sha384
+ 6: 06 03 # ecdsa_secp521r1_sha512
+ 7: 03 01 # SHA224 RSA
+ 8: 03 03 # SHA224 ECDSA
+ 9: 02 01 # rsa_pkcs1_sha1
+10: 02 03 # ecdsa_sha1
+
+Extension type: 00 10 # application_layer_protocol_negation
+Extension length: be16[14]
+Protocols list length: be16[12]
+ 1: 02 "h2"
+ 2: 08 "http/1.1"

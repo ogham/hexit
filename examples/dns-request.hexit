@@ -1,0 +1,31 @@
+# DNS Request example
+# ===================
+#
+# In this example, we build a DNS request packet, which we can send over UDP
+# or TCP and receive a response.
+#
+# To run using ‘netcat’ on the command-line, tell Hexit to output as raw
+# bytes, then pipe the output to ‘nc’ or ‘netcat’ that sends its output to
+# ‘1.1.1.1’, the Cloudflare public DNS server. This example uses UDP, but TCP
+# will also work. ‘netcat’ will print the response as raw bytes, so we must
+# convert it back to hexadecimal with ‘hexyl’. It will then hang around
+# waiting for more input, so kill it after a response is received.
+#
+#   $ hexit dns-request.hexit --raw | nc -u 1.1.1.1 53 | hexyl
+#
+# If you do not have ‘hexyl’ installed, ‘xxd’ will also work OK.
+#
+# In the response, you should see the packet start with the same Transaction
+# ID (‘12 34’) as in the request.
+#
+# To see a parsed version of the request and response, you can run ‘tshark’,
+# The command-line version of Wireshark, in the background.
+#
+#   $ tshark -f "net 1.1.1.1" -O dns
+
+Transaction ID: 12 34
+Flags: 01 00
+Counts: be16[1]  be16[0]  be16[0]  be16[0]
+Domain: 05 "hexit" 0a "binarystar" 07 "systems" 00
+Type: be16(DNS_A)
+Class: be16(DNS_IN)

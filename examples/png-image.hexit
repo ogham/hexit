@@ -1,0 +1,74 @@
+# PNG Image example
+# =================
+#
+# In this example, we build a PNG image from bytes.
+#
+# The PNG file format is made up of a header followed by several blocks, each
+# of which has a four-byte type identifier, a length, a bunch of data, and a
+# CRC check for the block. Our sample PNG image will contain:
+#
+# 1. An IHDR block, for the size and some other metadata.
+# 2. A PLTE block, to define the (singular) colour used in the image.
+# 3. An IDAT block, containing compressed pixels that all use the colour.
+# 4. An IEND block, ending the image.
+#
+# To run the example, tell Hexit to output as raw bytes, then redirect the
+# output to a file, which you can then open in an image viewer.
+#
+#   $ hexit png-image.hexit --raw > a-green-square.png
+
+
+# ---- PNG file header ----
+
+89 "PNG" 0D 0A 1A 0A
+
+
+# ---- IHDR block ----
+
+Block length: be32[13]
+Block type: "IHDR"
+
+Width:  be32[256]
+Height: be32[256]
+Bit depth: 01
+Pixel type: 03   # (indexing into a palette)
+Compression: 00  # (DEFLATE)
+Filtering: 00    # (basic)
+Interlacing: 00  # (off)
+
+CRC: 66 BC 3A 25
+
+
+# ---- PLTE block ----
+
+Block length: be32[3]
+Block type: "PLTE"
+
+[0] [144] [81]  # a nice green in RGB
+
+CRC: 63 04 16 EA
+
+
+# ---- IDAT block ----
+
+Block length: be32[31]
+Block type: "IDAT"
+
+# (compressed with DEFLATE)
+68 81 ED C1
+01 0D 00 00
+00 C2 A0 F7
+4F 6D 0E 37
+A0 00 00 00
+00 00 00 00
+00 BE 0D 21
+00 00 01
+
+CRC: 9A 60 E1 D5
+
+
+# ---- IEND block ----
+
+Block length: be32[0]
+Block type: "IEND"
+CRC: AE 42 60 82

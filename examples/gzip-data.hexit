@@ -1,0 +1,27 @@
+# gzip example
+# ============
+#
+# In this example, we create a tiny piece of gzipped data.
+#
+# Our file contains the gzip header, which marks the data as gzipped text
+# created at a certain date on a Unix system, as well as the compressed data.
+#
+# To uncompress the data using ‘gzip’ on the command line, tell Hexit to
+# output as raw bytes, then pipe the output to ‘gzip -d -’, which decodes the
+# bytes it reads. You should see a friendly message if it succeeds.
+#
+#   $ hexit gzip-data.hexit --raw | gzip -d -
+
+Magic number: 1F 8B
+Method: GZIP_DEFLATE
+Flags: [b0000_0001]  # ‘FTEXT’ flag set
+Time: le32[2017-12-31T21:36:45]
+Compression flags: [b0000_0000]  # Nothing set
+OS: GZIP_UNIX
+
+Data compressed with DEFLATE:
+f3 48 cd c9 c9 d7 51 28
+cf 2f ca 49 51 e4 02 00
+
+Uncompressed data CRC32: 18 A7 55 7B
+Uncompressed data size: le32[14]

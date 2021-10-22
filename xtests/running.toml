@@ -1,5 +1,5 @@
 [[cmd]]
-shell = "hexit ../examples/png.hexit"
+shell = "hexit ../examples/png-image.hexit"
 status = 0
 #stdout = { empty = false }
 stderr = { empty = true }
@@ -8,7 +8,7 @@ stderr = { empty = true }
 # syntax checking
 
 [[cmd]]
-shell = "hexit -c ../examples/png.hexit"
+shell = "hexit -c ../examples/png-image.hexit"
 status = 0
 stdout = { empty = false }
 stderr = { empty = true }

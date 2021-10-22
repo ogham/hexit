@@ -1,11 +1,59 @@
-[[cmd]]
-shell = "hexit -c ../examples/bgp.hexit"
-status = 0
+# ---- syntax checking ----
 
 [[cmd]]
-shell = "hexit -c ../examples/gzip.hexit"
+shell = "hexit -c ../examples/dns-request.hexit"
 status = 0
+stderr = { empty = true }
 
 [[cmd]]
-shell = "hexit -c ../examples/png.hexit"
+shell = "hexit -c ../examples/gzip-data.hexit"
 status = 0
+stderr = { empty = true }
+
+[[cmd]]
+shell = "hexit -c ../examples/icmp-ping.hexit"
+status = 0
+stderr = { empty = true }
+
+[[cmd]]
+shell = "hexit -c ../examples/png-image.hexit"
+status = 0
+stderr = { empty = true }
+
+[[cmd]]
+shell = "hexit -c ../examples/tls-client-hello.hexit"
+status = 0
+stderr = { empty = true }
+
+
+# ---- running ----
+
+[[cmd]]
+shell = "hexit ../examples/dns-request.hexit"
+status = 0
+stdout = { file = "../examples/outputs/dns-request.txt" }
+stderr = { empty = true }
+
+[[cmd]]
+shell = "hexit ../examples/gzip-data.hexit"
+status = 0
+stdout = { file = "../examples/outputs/gzip-data.txt" }
+stderr = { empty = true }
+
+[[cmd]]
+shell = "hexit ../examples/icmp-ping.hexit"
+status = 0
+stdout = { file = "../examples/outputs/icmp-ping.txt" }
+stderr = { empty = true }
+
+[[cmd]]
+shell = "hexit ../examples/png-image.hexit"
+status = 0
+stdout = { file = "../examples/outputs/png-image.txt" }
+stderr = { empty = true }
+
+[[cmd]]
+shell = "hexit ../examples/tls-client-hello.hexit"
+status = 0
+stdout = { file = "../examples/outputs/tls-client-hello.txt" }
+stderr = { empty = true }

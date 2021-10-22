@@ -1,0 +1,37 @@
+# ICMP Ping example
+# =================
+#
+# In this example, we build an ICMP “Echo Request” packet, which is the packet
+# traditionally sent out by the ‘ping’ utility.
+#
+# ICMP is a “network-layer” protocol. This is the same level as TCP and UDP
+# themselves, so there is no “port number” that we can send this packet to.
+# Instead, we have to send this packet as an IP packet, which has its own
+# “protocol” field.
+#
+# To run using ‘socat’ on the command-line, tell Hexit to output as raw bytes,
+# then pipe the output to a privileged ‘socat’ that sends its input to
+# ‘127.0.0.1’ using raw IP packets (‘IP-SENDTO’) and the IP protocol field to
+# ICMP (‘1’). ‘socat’ will print the response as raw bytes, so we must convert
+# it back to hexadecimal with ‘hexyl’.
+#
+#   $ hexit icmp-ping.hexit --raw | sudo socat - IP-SENDTO:127.0.0.1:1 | hexyl
+#
+# If you do not have ‘hexyl’ installed, ‘xxd’ will also work OK.
+#
+# In the response, you should see that the response we receive starts with an
+# ‘00’ byte (Echo Reply) instead of ‘08’ (Echo Request), and that the data,
+# “this is some data”, is present at the end of the packet.
+#
+# To see a parsed version of the request and the response, you can run
+# ‘tshark’, the command-line version of Wireshark, in the background.
+#
+#   $ tshark -f “net 127.0.0.1” -O icmp
+
+Type: 08  # Echo Request
+Code: 00  # (unused for this type)
+Checksum: 92 b2
+Identifier: be16[12345]
+Sequence Number: be16[1]
+
+Data: "this is some data"
