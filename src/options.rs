@@ -47,6 +47,9 @@ pub struct Options {
 
     /// How the length of the output should be verified, if at all.
     pub verification: Verification,
+
+    /// Whether to limit the maximum possible amount of output.
+    pub limit: Option<usize>,
 }
 
 /// Where the output gets written to.
@@ -101,6 +104,7 @@ impl RunningMode {
         opts.optopt ("S", "suffix",          "string to print after each pair of hex characters",          "STR");
         opts.optopt ("s", "separator",       "string to print between successive pairs of hex characters", "STR");
         opts.optflag("l", "lowercase",       "print hex characters in lowercase");
+        opts.optopt ("",  "limit",           "limit the output from getting too large",                    "NUM");
 
         opts.optopt ("",  "verify-length",   "ensure that the output has this exact length",               "NUM");
         opts.optopt ("",  "verify-boundary", "ensure that the output has a length with a given multiple",  "NUM");
@@ -156,7 +160,13 @@ impl RunningMode {
             let output = Output::deduce(matches);
             let format = Format::deduce(matches);
             let verification = Verification::deduce(matches)?;
-            Ok(Self::Run(Options { input, output, format, verification }))
+
+            let limit = match matches.opt_str("limit") {
+                Some(l)  => Some(l.parse().map_err(OptionsError::InvalidLimit)?),
+                None     => None,
+            };
+
+            Ok(Self::Run(Options { input, output, format, verification, limit }))
         }
     }
 }
@@ -305,6 +315,9 @@ pub enum OptionsError {
 
     /// The user provided a verification option with an unparseable number.
     InvalidVerificationNumber(ParseIntError),
+
+    /// The user provided a limit option with an unparseable number.
+    InvalidLimit(ParseIntError),
 }
 
 impl From<ParseIntError> for OptionsError {
@@ -321,6 +334,7 @@ impl fmt::Display for OptionsError {
             Self::TooMuchVerification             => write!(f, "Too much verification"),
             Self::TooManyConstantSearches         => write!(f, "Too many constant searches"),
             Self::InvalidVerificationNumber(pie)  => write!(f, "Invalid verification: {}", pie),
+            Self::InvalidLimit(pie)               => write!(f, "Invalid limit: {}", pie),
         }
     }
 }
@@ -522,6 +536,7 @@ mod test {
             output: Output::Stdout,
             format: Format::Formatted(Style::default()),
             verification: Verification::AnythingGoes,
+            limit: None,
         }
     }
 }

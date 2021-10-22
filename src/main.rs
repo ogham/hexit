@@ -91,7 +91,7 @@ pub fn run(mode: RunningMode) -> i32 {
 
     match mode {
         RunningMode::Run(opts) => {
-            let Options { input, output, format, verification } = opts;
+            let Options { input, output, format, verification, limit } = opts;
             let source = match input.read() {
                 Ok(p) => p,
                 Err(e) => {
@@ -109,7 +109,7 @@ pub fn run(mode: RunningMode) -> i32 {
             };
 
             let constants = Table::builtin_set();
-            let bytes = match program.run(&constants, None) {
+            let bytes = match program.run(&constants, limit) {
                 Ok(bs) => bs,
                 Err(e) => {
                     eprintln!("{}: runtime error: {}", input, e);

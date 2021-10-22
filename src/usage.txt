@@ -19,6 +19,7 @@
   \1;33m-l\0m, \1;33m--lowercase\0m        If you like your letters minuscule
   \1;33m-r\0m, \1;33m--raw\0m              Print bytes without any formatting at all
   \1;33m-o\0m, \1;33m--output\0m=\33mPATH\0m      Write output to the given file, rather than to stdout
+  \1;33m--limit\0m=\33mNUM\0m            Limit the output from getting too large
 
 \4mVerification options:\0m
   \1;33m--verify-length\0m=\33mNUM\0m    Verify that an exact number of bytes is written
