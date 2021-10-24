@@ -9,7 +9,7 @@ fuzz_target!(|data: &[u8]| {
         Err(_) => return,
     };
 
-    let _ = Program::read(string).map(|prog| {
+    let _ = Program::read(&[string]).map(|prog| {
         let constants = constants::Table::builtin_set();
         let _ = prog.run(&constants, Some(131072));
     });
