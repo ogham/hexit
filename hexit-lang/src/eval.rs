@@ -265,7 +265,7 @@ impl<'consts> Evaluator<'consts> {
                 let mut iter = args.into_iter().map(|exp| self.evaluate_exp(exp));
                 let mut result = match iter.next() {
                     Some(val)  => val?,
-                    None       => return Err(Error::InvalidArgs("No arguments for and function".into())),
+                    None       => return Err(Error::InvalidArgs(InvalidArgsError::NoArgumentsForBitwise)),
                 };
 
                 for next_val in iter {
@@ -340,19 +340,16 @@ impl<'src> Value<'src> {
                 endianify(u16::from(b))
             }
             Self::VariableBytes(bytes) => {
-                let message = format!("Tried to turn variable bytes ({:?}) into 2 bytes", bytes);
-                return Err(Error::InvalidArgs(message));
+                return Err(Error::InvalidArgs(InvalidArgsError::VariableToFixed(bytes, 2)));
             }
             Self::MultiByte(MultiByteValue::Sixteen(o2)) => {
                 endianify(o2)
             }
             Self::MultiByte(MultiByteValue::ThirtyTwo(o4)) => {
-                let message = format!("Tried to turn four bytes ({:?}) into 2 bytes", o4);
-                return Err(Error::InvalidArgs(message));
+                return Err(Error::InvalidArgs(InvalidArgsError::CannotNarrow4to2(o4)));
             }
             Self::MultiByte(MultiByteValue::SixtyFour(o8)) => {
-                let message = format!("Tried to turn eight bytes ({:?}) into 2 bytes", o8);
-                return Err(Error::InvalidArgs(message));
+                return Err(Error::InvalidArgs(InvalidArgsError::CannotNarrow8to2(o8)));
             }
             Self::RawNumber(s) => {
                 match s.parse() {
@@ -382,8 +379,7 @@ impl<'src> Value<'src> {
                 endianify(u32::from(b))
             }
             Self::VariableBytes(bytes) => {
-                let message = format!("Tried to turn variable bytes ({:?}) into 4 bytes", bytes);
-                return Err(Error::InvalidArgs(message));
+                return Err(Error::InvalidArgs(InvalidArgsError::VariableToFixed(bytes, 4)));
             }
             Self::MultiByte(MultiByteValue::Sixteen(o2)) => {
                 endianify(u32::from(o2))
@@ -392,8 +388,7 @@ impl<'src> Value<'src> {
                 endianify(o4)
             }
             Self::MultiByte(MultiByteValue::SixtyFour(o8)) => {
-                let message = format!("Tried to turn eight bytes ({:?}) into 4 bytes", o8);
-                return Err(Error::InvalidArgs(message));
+                return Err(Error::InvalidArgs(InvalidArgsError::CannotNarrow8to4(o8)));
             }
             Self::RawNumber(s) => {
                 match s.parse() {
@@ -428,8 +423,7 @@ impl<'src> Value<'src> {
                 endianify(u64::from(b))
             }
             Self::VariableBytes(bytes) => {
-                let message = format!("Tried to turn variable bytes ({:?}) into 8 bytes", bytes);
-                return Err(Error::InvalidArgs(message));
+                return Err(Error::InvalidArgs(InvalidArgsError::VariableToFixed(bytes, 8)));
             }
             Self::MultiByte(MultiByteValue::Sixteen(o2)) => {
                 endianify(u64::from(o2))
@@ -494,17 +488,10 @@ impl<'src> Value<'src> {
                 Ok(Self::MultiByte(MultiByteValue::SixtyFour(result)))
             }
 
-            (Self::RawNumber(left),
-             Self::RawNumber(right)) => {
-                let message = format!("ANDing together two raw numbers ({} and {})", left, right);
-                return Err(Error::InvalidArgs(message));
-            }
-
             (Self::VariableBytes(lefts),
              Self::VariableBytes(rights)) => {
                 if lefts.len() != rights.len() {
-                    let message = format!("ANDing together bytestrings of different lengths ({} and {})", lefts.len(), rights.len());
-                    return Err(Error::InvalidArgs(message));
+                    return Err(Error::InvalidArgs(InvalidArgsError::BitwiseDifferentLengths(lefts.len(), rights.len())));
                 }
 
                 let bytes = lefts.into_iter()
@@ -516,9 +503,23 @@ impl<'src> Value<'src> {
             }
 
             (a, b) => {
-                let message = format!("ANDing together two weird things ({:?} and {:?})", a, b);
-                return Err(Error::InvalidArgs(message));
+                return Err(Error::InvalidArgs(InvalidArgsError::BitwiseWrongTypes(a.type_name(), b.type_name())));
             }
+        }
+    }
+
+    /// Returns a string describing the type of value this is. The result gets
+    /// shown to the user as part of error handling, when a function cannot
+    /// handle a value of a certain type.
+    fn type_name(&self) -> &'static str {
+        match self {
+            Self::Byte(_)                                  => "byte",
+            Self::MultiByte(MultiByteValue::Sixteen(_))    => "sixteen-bit number",
+            Self::MultiByte(MultiByteValue::ThirtyTwo(_))  => "thirty-two-bit number",
+            Self::MultiByte(MultiByteValue::SixtyFour(_))  => "sixty-four-bit number",
+            Self::VariableBytes(_)                         => "variable-length byte string",
+            Self::RawNumber(_)                             => "unsized number",
+            Self::RawFloat(_)                              => "unsized float",
         }
     }
 }
@@ -566,8 +567,7 @@ fn only_arg<'src>(mut args: Vec<Exp<'src>>) -> Result<Exp<'src>, Error<'src>> {
         Ok(args.remove(0))
     }
     else {
-        let message = format!("Pass only 1 arg, not {}", args.len());
-        Err(Error::InvalidArgs(message))
+        Err(Error::InvalidArgs(InvalidArgsError::TooManyArguments(args.len())))
     }
 }
 
@@ -586,8 +586,8 @@ pub enum Error<'src> {
     /// A constant value was referenced that does not exist.
     UnknownConstant(&'src str),
 
-    /// A function had the wrong type or number of arguments passed to it.
-    InvalidArgs(String),
+    /// A function was called with the wrong type or number of arguments.
+    InvalidArgs(InvalidArgsError),
 
     /// The amount of output hit the limit.
     TooMuchOutput,
@@ -613,6 +613,39 @@ pub enum LargeNumber<'src> {
 
     /// A number of bits were too many, such as `be16[b0101_0101_0101_0101_1].
     FoundBits(usize),
+}
+
+/// An error caused by the wrong number or types of arguments being passed to
+/// a function.
+#[derive(PartialEq, Debug)]
+pub enum InvalidArgsError {
+
+    /// A variable number of bytes were attempted to be converted to a fixed
+    /// number by a multi-byte function.
+    VariableToFixed(Vec<u8>, u8),
+
+    /// A 4-byte value was passed to a ‘le16’ or ‘be16’ function.
+    CannotNarrow4to2(u32),
+
+    /// An 8-byte value was passed to a ‘le16’ or ‘be16’ function.
+    CannotNarrow8to2(u64),
+
+    /// An 8-byte value was passed to a ‘le32’ or ‘be32’ function.
+    CannotNarrow8to4(u64),
+
+    /// A function was called with no arguments.
+    NoArgumentsForBitwise,
+
+    /// A bitwise function was called with two arguments of variable-width
+    /// byte strings that were of different lengths.
+    BitwiseDifferentLengths(usize, usize),
+
+    /// A bitwise function was called with arguments of differing types, or
+    /// one or more arguments was a raw number or float.
+    BitwiseWrongTypes(&'static str, &'static str),
+
+    /// A function was called with too many arguments.
+    TooManyArguments(usize),
 }
 
 impl<'src> fmt::Display for Error<'src> {
@@ -661,6 +694,21 @@ impl fmt::Display for MultiByteValue {
             Self::Sixteen(num)    => write!(f, "2-byte number ‘{}’", num),
             Self::ThirtyTwo(num)  => write!(f, "4-byte number ‘{}’", num),
             Self::SixtyFour(num)  => write!(f, "8-byte number ‘{}’", num),
+        }
+    }
+}
+
+impl fmt::Display for InvalidArgsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::VariableToFixed(_, size)       => write!(f, "Cannot convert variable bytes into {} bytes", size),
+            Self::CannotNarrow4to2(o4)           => write!(f, "Cannot narrow a 4-byte number ({}) into 2 bytes", o4),
+            Self::CannotNarrow8to2(o8)           => write!(f, "Cannot narrow an 8-byte number ({}) into 2 bytes", o8),
+            Self::CannotNarrow8to4(o8)           => write!(f, "Cannot narrow an 8-byte number ({}) into 4 bytes", o8),
+            Self::NoArgumentsForBitwise          => write!(f, "No arguments passed to bitwise function"),
+            Self::BitwiseDifferentLengths(l, r)  => write!(f, "Variable byte strings of different lengths passed to bitwise function ({} and {})", l, r),
+            Self::BitwiseWrongTypes(l, r)        => write!(f, "Arguments of different types passed to bitwise function ({} and {})", l, r),
+            Self::TooManyArguments(count)        => write!(f, "Too many arguments ({}) passed to function", count),
         }
     }
 }
