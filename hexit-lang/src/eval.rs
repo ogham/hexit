@@ -618,7 +618,7 @@ pub enum LargeNumber<'src> {
 impl<'src> fmt::Display for Error<'src> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::TopLevelBigDecimal(dec)  => write!(f, "{} does not fit in one byte", dec),
+            Self::TopLevelBigDecimal(dec)  => write!(f, "{} at top level", dec),
             Self::TooBigDecimal(dec)       => write!(f, "{} is too big for target", dec),
             Self::UnknownConstant(uc)      => write!(f, "Unknown constant ‘{}’", uc),
             Self::InvalidArgs(oh)          => write!(f, "Invalid arguments: {}", oh),

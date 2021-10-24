@@ -2,8 +2,8 @@
 test_eval!(top_0:    "[0]"    => Ok(vec![ 0 ]));
 test_eval!(top_50:   "[50]"   => Ok(vec![ 50 ]));
 test_eval!(top_255:  "[255]"  => Ok(vec![ 255 ]));
-test_eval!(top_256:  "[256]"  => Err(String::from("Decimal number ‘256’ does not fit in one byte")));
-test_eval!(top_500:  "[500]"  => Err(String::from("Decimal number ‘500’ does not fit in one byte")));
+test_eval!(top_256:  "[256]"  => Err(String::from("Decimal number ‘256’ at top level")));
+test_eval!(top_500:  "[500]"  => Err(String::from("Decimal number ‘500’ at top level")));
 
 // be16 function
 test_eval!(be16_0:   "be16[0]"      => Ok(vec![ 0, 0 ]));
