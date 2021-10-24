@@ -115,6 +115,11 @@ pub fn run(mode: RunningMode) -> i32 {
                 Ok(bs) => bs,
                 Err(e) => {
                     eprintln!("{}: runtime error: {}", input, e);
+
+                    if let Some(note) = e.note() {
+                        eprintln!("{}: note: {}", input, note);
+                    }
+
                     return exits::PROGRAM_ERROR;
                 }
             };

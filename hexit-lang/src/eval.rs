@@ -628,6 +628,22 @@ impl<'src> fmt::Display for Error<'src> {
     }
 }
 
+impl<'src> Error<'src> {
+    pub fn note(&self) -> Option<&'static str> {
+        match self {
+            Self::TopLevelBigDecimal(LargeNumber::FoundRawNumber(_)) => {
+                Some("Top-level multi-byte values must be given an endianness using a function such as ‘be16’ or ‘le32’")
+            }
+            Self::TopLevelBigDecimal(LargeNumber::FoundRawFloat(_)) => {
+                Some("Top-level floating point values must be given an endianness and width using a function such as ‘be32’ or ‘le64’")
+            }
+            _ => {
+                None
+            }
+        }
+    }
+}
+
 impl<'src> fmt::Display for LargeNumber<'src> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
