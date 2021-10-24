@@ -236,7 +236,7 @@ fn parse_alphanums(span: Placed<&'_ str>) -> Result<Alphanums<'_>, Error<'_>> {
             let first_value = match first_char.to_digit(16) {
                 Some(f) => f as u8,
                 None => {
-                    let placed = span.substring(index, index + 1);
+                    let placed = span.substring_ascii(index, index + 1);
                     return Err(Error::StrayCharacter(placed));
                 }
             };
@@ -244,7 +244,7 @@ fn parse_alphanums(span: Placed<&'_ str>) -> Result<Alphanums<'_>, Error<'_>> {
             let (index2, second_char) = match chars.next() {
                 Some(t) => t,
                 None => {
-                    let placed = span.substring(index, index + 1);
+                    let placed = span.substring_ascii(index, index + 1);
                     return Err(Error::SingleHex(placed));
                 }
             };
@@ -252,7 +252,7 @@ fn parse_alphanums(span: Placed<&'_ str>) -> Result<Alphanums<'_>, Error<'_>> {
             let second_value = match second_char.to_digit(16) {
                 Some(f) => f as u8,
                 None => {
-                    let placed = span.substring(index2, index2 + 1);
+                    let placed = span.substring_ascii(index2, index2 + 1);
                     return Err(Error::StrayCharacter(placed));
                 }
             };
@@ -413,18 +413,20 @@ fn parse_backslashes<'src>(span: Placed<&'src str>) -> Result<Cow<'src, str>, Er
     // original (as "\n" will turn into one byte).
     let mut result = String::with_capacity(input.len() / 2);  // this doesn’t need mutation testing
 
-    let mut chars = input.chars();
-    while let Some(c) = chars.next() {
+    let mut chars = input.char_indices().enumerate();
+    while let Some((count, (i, c))) = chars.next() {
         if c != '\\' {
             result.push(c);
             continue;
         }
 
-        match chars.next() {
+        match chars.next().map(|t| t.1.1) {
             Some('n')  => result.push('\n'),
             Some('r')  => result.push('\r'),
             Some('t')  => result.push('\t'),
-            Some(nc)   => result.push(nc),
+            Some('"')  => result.push('"'),
+            Some('\\') => result.push('\\'),
+            Some(nc)   => return Err(Error::InvalidEscape(span.substring_mb(i, count, i + 1 + nc.len_utf8()))),
             None       => unreachable!("String ends with backslash"),
         }
     }
@@ -465,6 +467,10 @@ pub enum Error<'src> {
     /// sub-expressions for the function’s arguments, but before reading a
     /// closing `)` token, the stream of tokens ran out.
     UnclosedFunction(Placed<&'src str>),
+
+    /// A quoted string contained an escape character that was not one of the
+    /// five valid escape characters (‘n’, ‘r’, ‘t’, ‘"’, and ‘\’.).
+    InvalidEscape(Placed<&'src str>),
 }
 
 impl<'src> fmt::Display for Error<'src> {
@@ -477,6 +483,7 @@ impl<'src> fmt::Display for Error<'src> {
             Self::InvalidRepeatAmount(ra)     => write!(f, "Invalid repeat amount {:?}", ra.contents),
             Self::InvalidForm(form)           => write!(f, "Could not interpret form {:?}", form.contents),
             Self::UnclosedFunction(_)         => write!(f, "Unclosed function"),
+            Self::InvalidEscape(c)            => write!(f, "Invalid escape character {:?}", c),
         }
     }
 }
@@ -494,6 +501,7 @@ impl<'src> Error<'src> {
             Self::InvalidRepeatAmount(ra)     => ra,
             Self::InvalidForm(form)           => form,
             Self::UnclosedFunction(open)      => open,
+            Self::InvalidEscape(c)            => c,
         }
     }
 }
@@ -767,6 +775,36 @@ mod test_parse_quotes {
     fn backslash_quote() {
         assert_eq!(parse_backslashes("back\\\"slash".at(1, 0)),
                    Ok(Cow::from("back\"slash".to_string())));
+    }
+
+    #[test]
+    fn backslash_n() {
+        assert_eq!(parse_backslashes("back\\nslash".at(1, 0)),
+                   Ok(Cow::from("back\nslash".to_string())));
+    }
+
+    #[test]
+    fn backslash_r() {
+        assert_eq!(parse_backslashes("back\\rslash".at(1, 0)),
+                   Ok(Cow::from("back\rslash".to_string())));
+    }
+
+    #[test]
+    fn backslash_t() {
+        assert_eq!(parse_backslashes("back\\tslash".at(1, 0)),
+                   Ok(Cow::from("back\tslash".to_string())));
+    }
+
+    #[test]
+    fn backslash_otherwise() {
+        assert_eq!(parse_backslashes("back\\Qslash".at(1, 0)),
+                   Err(Error::InvalidEscape("\\Q".at(1, 4))));
+    }
+
+    #[test]
+    fn backslash_otherwise_utf8() {
+        assert_eq!(parse_backslashes("🐉back\\😬slash".at(1, 0)),
+                   Err(Error::InvalidEscape("\\😬".at(1, 5))));
     }
 
     #[test]

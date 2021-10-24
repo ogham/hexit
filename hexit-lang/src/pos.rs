@@ -19,10 +19,27 @@ pub struct Placed<T> {
 
 impl<'a> Placed<&'a str> {
 
-    /// Returns a new `Placed` containing a substring of the original. This is
-    /// used when printing out an error that occurs within a particular token.
-    pub fn substring(self, from: usize, to: usize) -> Self {
+    /// Returns a new `Placed` containing a substring of the original based
+    /// around the ‘from’ and ‘to’ indices, adjusting the column number.
+    ///
+    /// This is used to create a substring of an `Alphanums` value when an
+    /// error occurs parsing it, so that the part that errored can be shown to
+    /// the user in isolation. It is safe to index as all the characters in
+    /// the source string will have been shown to be ASCII already.
+    pub fn substring_ascii(self, from: usize, to: usize) -> Self {
         self.contents[ from .. to ].at(self.line_number, self.column_number + from)
+    }
+
+    /// Returns a new `Placed` containing a substring of the original based
+    /// around the ‘from’ and ‘to’ indices, adjusting the column number based
+    /// on the ‘from_column’ count.
+    ///
+    /// This is used to create a substring of a quoted value when an error
+    /// occurs parsing a backslash-escaped character, so the part that errored
+    /// can be shown to the user. As characters in the string may be
+    /// multi-byte, the ‘from’ index may be larger than the number of columns.
+    pub fn substring_mb(self, from: usize, from_column: usize, to: usize) -> Self {
+        self.contents[ from .. to ].at(self.line_number, self.column_number + from_column)
     }
 }
 
