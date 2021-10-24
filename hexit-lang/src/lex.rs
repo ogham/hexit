@@ -12,7 +12,7 @@ use crate::tokens::Token;
 /// the input, using the line number to indicate which line had the problem.
 pub fn lex_source<'src>(line_number: usize, input_source: &'src str) -> Result<Vec<Token<'src>>, Error<'src>> {
     let mut lexer = Lexer::new(line_number, input_source);
-    while lexer.next_token()? {}
+    while lexer.next_token() {}
     lexer.last_token()?;
     Ok(lexer.tokens)
 }
@@ -97,18 +97,21 @@ impl<'src> Lexer<'src> {
         let column_number = 0;
         let state = State::Ready;
         let tokens = Vec::new();
+
         Self { line_number, input_source, iter, column_number, state, tokens }
     }
 
     /// Analyses the next character from the iterator, possibly changing the
     /// internal state or pushing one or two tokens onto the internal vector.
     ///
-    /// Returns `true` if there are more characters to read, `false` if there
-    /// are no more, and an error if there is a problem with the user’s input.
-    fn next_token(&mut self) -> Result<bool, Error<'src>> {
+    /// Returns `true` if there are more characters to read, and `false` if
+    /// there are no more. This function cannot fail, as the “unknown
+    /// character” error is checked for and handled later, in order to have
+    /// front comments.
+    fn next_token(&mut self) -> bool {
         let (index, c) = match self.iter.next() {
-            Some(tuple) => tuple,
-            None        => return Ok(false),
+            Some(tuple)  => tuple,
+            None         => return false,
         };
 
         let column_number = self.column_number;
@@ -248,7 +251,7 @@ impl<'src> Lexer<'src> {
         }
 
         self.column_number += 1;
-        Ok(true)
+        true
     }
 
     /// Adds one final token to the vector, or throws an error, depending on
