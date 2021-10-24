@@ -1,4 +1,10 @@
 [[cmd]]
+shell = "hexit erroneous-inputs/unclosed-function.hexit"
+stdout = { empty = true }
+stderr = { file = "outputs/unclosed-function.txt" }
+status = 2
+
+[[cmd]]
 shell = "hexit erroneous-inputs/unterminated-form.hexit"
 stdout = { empty = true }
 stderr = { file = "outputs/unterminated-form.txt" }

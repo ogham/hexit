@@ -1,0 +1,4 @@
+# This erroneous program contains a function call that’s missing its closing
+# parenthesis.
+
+and(FE EF

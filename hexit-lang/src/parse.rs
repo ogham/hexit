@@ -33,9 +33,9 @@ struct Parser<'iter, 'src, I> {
     state: State<'src>,
 
     /// If this parser is parsing tokens that occur after the open parenthesis
-    /// of a function, rather than at the top-level, this holds the position
-    /// of the parenthesis token.
-    function_start: Option<Placed<&'src str>>,
+    /// of a function, rather than at the top-level, this holds the name and
+    /// position of the function name.
+    enclosing_function_name: Option<Placed<&'src str>>,
 }
 
 /// The state of a parser.
@@ -59,8 +59,8 @@ impl<'iter, 'src, I> Parser<'iter, 'src, I> {
     fn new(iter: &'iter mut I) -> Self {
         let state = State::Ready;
         let exps = Vec::new();
-        let function_start = None;
-        Self { iter, exps, state, function_start }
+        let enclosing_function_name = None;
+        Self { iter, exps, state, enclosing_function_name }
     }
 }
 
@@ -82,9 +82,9 @@ impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> 
                     unreachable!();
                 }
 
-                (Token::Open(open), State::ReadAlphanum(slice)) => {
+                (Token::Open(_), State::ReadAlphanum(slice)) => {
                     let mut sub_parser = Parser::new(self.iter);
-                    sub_parser.function_start = Some(open);
+                    sub_parser.enclosing_function_name = Some(slice);
                     sub_parser.parse()?;
                     let args = sub_parser.exps;
 
@@ -102,23 +102,23 @@ impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> 
                 }
 
                 (Token::Close(span), State::Ready) => {
-                    if self.function_start.is_none() {
+                    if self.enclosing_function_name.is_none() {
                         return Err(Error::StrayCharacter(span));
                     }
 
                     self.state = State::Ready;
-                    self.function_start = None;  // skip check below
+                    self.enclosing_function_name = None;  // skip check below
                     break;
                 }
                 (Token::Close(span), State::ReadAlphanum(slice)) => {
-                    if self.function_start.is_none() {
+                    if self.enclosing_function_name.is_none() {
                         return Err(Error::StrayCharacter(span));
                     }
 
                     let alphanums = parse_alphanums(slice)?;
                     self.add(alphanums, slice)?;
                     self.state = State::Ready;
-                    self.function_start = None;  // skip check below
+                    self.enclosing_function_name = None;  // skip check below
                     break;
                 }
 
@@ -170,8 +170,8 @@ impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> 
             trace!("Parse state → {:?}", self.state);
         }
 
-        if let Some(open) = self.function_start {
-            return Err(Error::UnclosedFunction(open));
+        if let Some(function_name) = self.enclosing_function_name {
+            return Err(Error::UnclosedFunction(function_name));
         }
 
         if let State::ReadAlphanum(slice) = self.state {
@@ -482,7 +482,7 @@ impl<'src> fmt::Display for Error<'src> {
             Self::InvalidFunctionName(name)   => write!(f, "Invalid function name {:?}", name.contents),
             Self::InvalidRepeatAmount(ra)     => write!(f, "Invalid repeat amount {:?}", ra.contents),
             Self::InvalidForm(form)           => write!(f, "Could not interpret form {:?}", form.contents),
-            Self::UnclosedFunction(_)         => write!(f, "Unclosed function"),
+            Self::UnclosedFunction(fname)     => write!(f, "Unclosed function {:?}", fname.contents),
             Self::InvalidEscape(c)            => write!(f, "Invalid escape character {:?}", c),
         }
     }
@@ -852,9 +852,9 @@ mod test_edge_cases {
     #[test]
     fn a_function() {
         let tokens = vec![ Token::Alphanum("x11".at(1, 0)),
-                           Token::Open("(".at(1, 0)),
-                           Token::Alphanum("AB".at(1, 0)),
-                           Token::Close(")".at(1, 0)) ];
+                           Token::Open("(".at(1, 3)),
+                           Token::Alphanum("AB".at(1, 4)),
+                           Token::Close(")".at(1, 6)) ];
 
         assert_eq!(parse_tokens(tokens),
                    Ok(vec![ Exp::Function {
@@ -866,8 +866,8 @@ mod test_edge_cases {
     #[test]
     fn empty_function() {
         let tokens = vec![ Token::Alphanum("x11".at(1, 0)),
-                           Token::Open("(".at(1, 0)),
-                           Token::Close(")".at(1, 0)) ];
+                           Token::Open("(".at(1, 3)),
+                           Token::Close(")".at(1, 4)) ];
 
         assert_eq!(parse_tokens(tokens),
                    Ok(vec![ Exp::Function {
@@ -897,11 +897,11 @@ mod test_edge_cases {
     #[test]
     fn unclosed_function() {
         let tokens = vec![ Token::Alphanum("x11".at(1, 0)),
-                           Token::Open("(".at(1, 0)),
-                           Token::Alphanum("AB".at(1, 0)) ];
+                           Token::Open("(".at(1, 3)),
+                           Token::Alphanum("AB".at(1, 4)) ];
 
         assert_eq!(parse_tokens(tokens),
-                   Err(Error::UnclosedFunction("(".at(1, 0))));
+                   Err(Error::UnclosedFunction("x11".at(1, 0))));
     }
 
     #[test]
