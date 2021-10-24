@@ -1,0 +1,2 @@
+erroneous-inputs/invalid-repeat-amount.hexit:4:0: syntax error: Invalid repeat amount "x0"
+erroneous-inputs/invalid-repeat-amount.hexit:5:0: syntax error: Invalid repeat amount "x999999"

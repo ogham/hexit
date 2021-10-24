@@ -1,0 +1,5 @@
+# This erroneous program tries to use repetition functions with invalid
+# repeat amounts.
+
+x0(AA)
+x999999(BB)

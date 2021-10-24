@@ -1,0 +1,4 @@
+# This erroneous program uses a function with a name that’s not one of the
+# valid function names.
+
+blarg(DNS_A)
