@@ -71,7 +71,7 @@ impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> 
     /// vector of expressions.
     fn parse(&mut self) -> Result<(), Error<'src>> {
         while let Some(token) = self.iter.next() {
-            trace!("Read token {:?}", token);
+            trace!("Read token → {:?}", token);
 
             match (token, self.state) {
                 (Token::Alphanum(slice), State::Ready) => {
@@ -163,11 +163,11 @@ impl<'iter, 'src, I: 'iter + Iterator<Item=Token<'src>>> Parser<'iter, 'src, I> 
                 }
 
                 (Token::Stray(_), _) => {
-                    unreachable!("Stray token not filtered out by read");
+                    unreachable!("Stray token not filtered out by ‘read’");
                 }
             }
 
-            trace!("Parse state is {:?}", self.state);
+            trace!("Parse state → {:?}", self.state);
         }
 
         if let Some(open) = self.function_start {

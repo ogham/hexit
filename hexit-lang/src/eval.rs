@@ -90,7 +90,7 @@ impl<'consts> Evaluator<'consts> {
     /// Evaluates this expression by converting it into a “value in flight”,
     /// which possibly involves evaluating the expression’s sub-expressions.
     fn evaluate_exp<'src>(&self, exp: Exp<'src>) -> Result<Value<'src>, Error<'src>> {
-        trace!("Evaluating expression -> {:#?}", exp);
+        trace!("Evaluating expression → {:#?}", exp);
 
         match exp {
             Exp::Char(byte) => {
@@ -196,6 +196,9 @@ impl<'consts> Evaluator<'consts> {
     /// as its arguments. The arguments have not yet been evaluated
     /// themselves, so that the number of arguments can first be checked.
     fn run_function<'src>(&self, name: FunctionName, args: Vec<Exp<'src>>) -> Result<Value<'src>, Error<'src>> {
+        trace!("Running function → {:?}", name);
+        trace!("Function arguments → {:#?}", args);
+
         match name {
             FunctionName::MultiByte(MultiByteType::Be16) => {
                 let arg = only_arg(args)?;

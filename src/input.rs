@@ -56,7 +56,7 @@ impl Input {
             }
 
             Self::File(path) => {
-                info!("Reading from file {:?}", path);
+                info!("Reading from file → {:?}", path);
                 let handle = File::open(path)?;
 
                 let lines = read_all_lines(handle)?;

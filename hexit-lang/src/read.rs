@@ -14,7 +14,7 @@ use crate::{ast, lex, parse, pos, tokens};
 /// returned as soon as something fails to be lexed or parsed.
 pub fn tokenise_and_parse<'src>(input_line: &'src str, line_number: usize) -> Result<Vec<ast::Exp<'src>>, Error<'src>> {
     let mut line_tokens = lex::lex_source(line_number, input_line).map_err(Error::Lex)?;
-    trace!("Tokens: {:#?}", line_tokens);
+    trace!("Lexed into tokens → {:#?}", line_tokens);
 
     strip_front_comment(&mut line_tokens);
 

@@ -60,7 +60,7 @@ impl<'src> Program<'src> {
 
         for (line_index, input_line) in input_source_lines.iter().enumerate() {
             let input_line = input_line.as_ref();
-            debug!("Reading line -> {:?}", input_line);
+            debug!("Reading line → {:?}", input_line);
 
             let line_number = line_index + 1;
             match read::tokenise_and_parse(input_line, line_number) {
@@ -80,7 +80,7 @@ impl<'src> Program<'src> {
     /// Runs this Hexit program, returning the vector of bytes that it has
     /// produced, or an evaluation error.
     pub fn run(self, constants: &constants::Table, limit: Option<usize>) -> Result<Vec<u8>, eval::Error<'src>> {
-        debug!("Expressions -> {:#?}", self.exps);
+        debug!("Running expressions → {:#?}", self.exps);
 
         let bytes = eval::evaluate_exps(self.exps, constants, limit)?;
         Ok(bytes)

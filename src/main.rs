@@ -87,7 +87,7 @@ fn main() {
 
 /// The main program entry point.
 pub fn run(mode: RunningMode) -> i32 {
-    info!("Running with mode -> {:#?}", mode);
+    info!("Running with mode → {:#?}", mode);
 
     match mode {
         RunningMode::Run(opts) => {
