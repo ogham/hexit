@@ -1,0 +1,6 @@
+# This erroneous program contains quoted strings, each with a character escape
+# that’s not one of the five allowed escapable characters.
+
+"word \W char"
+"agua \🥑 cate"
+"agua \  cate"

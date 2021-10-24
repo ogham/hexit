@@ -1,0 +1,3 @@
+erroneous-inputs/invalid-string-escape.hexit:4:5: syntax error: String contains invalid escape character "\W"
+erroneous-inputs/invalid-string-escape.hexit:5:5: syntax error: String contains invalid escape character "\🥑"
+erroneous-inputs/invalid-string-escape.hexit:6:5: syntax error: String contains invalid escape character "\ "

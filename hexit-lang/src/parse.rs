@@ -483,7 +483,7 @@ impl<'src> fmt::Display for Error<'src> {
             Self::InvalidRepeatAmount(ra)     => write!(f, "Invalid repeat amount {:?}", ra.contents),
             Self::InvalidForm(form)           => write!(f, "Could not interpret form {:?}", form.contents),
             Self::UnclosedFunction(fname)     => write!(f, "Unclosed function {:?}", fname.contents),
-            Self::InvalidEscape(c)            => write!(f, "Invalid escape character {:?}", c),
+            Self::InvalidEscape(c)            => write!(f, "String contains invalid escape character \"{}\"", c.contents),
         }
     }
 }

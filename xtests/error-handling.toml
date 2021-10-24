@@ -11,6 +11,12 @@ stderr = { file = "outputs/invalid-repeat-amount.txt" }
 status = 2
 
 [[cmd]]
+shell = "hexit erroneous-inputs/invalid-string-escape.hexit"
+stdout = { empty = true }
+stderr = { file = "outputs/invalid-string-escape.txt" }
+status = 2
+
+[[cmd]]
 shell = "hexit erroneous-inputs/unclosed-function.hexit"
 stdout = { empty = true }
 stderr = { file = "outputs/unclosed-function.txt" }
