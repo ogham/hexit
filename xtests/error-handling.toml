@@ -1,4 +1,10 @@
 [[cmd]]
+shell = "hexit erroneous-inputs/invalid-form.hexit"
+stdout = { empty = true }
+stderr = { file = "outputs/invalid-form.txt" }
+status = 2
+
+[[cmd]]
 shell = "hexit erroneous-inputs/invalid-function-name.hexit"
 stdout = { empty = true }
 stderr = { file = "outputs/invalid-function-name.txt" }
