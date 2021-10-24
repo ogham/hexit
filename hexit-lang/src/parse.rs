@@ -397,7 +397,7 @@ fn parse_float_form(input: &str) -> Option<&str> {
     }
 }
 
-/// Parse the contents of a quoted string into its canoncial form by handling
+/// Parse the contents of a quoted string into its canonical form by handling
 /// escaped backslashes and quotes. This returns a copy of the original string
 /// slice if it does not need to be modified; otherwise, it allocates and
 /// returns a new string.
@@ -409,20 +409,24 @@ fn parse_backslashes<'src>(span: Placed<&'src str>) -> Result<Cow<'src, str>, Er
         return Ok(input.into());
     }
 
+    // The resulting string must be, at a minimum, half the length of the
+    // original (as "\n" will turn into one byte).
     let mut result = String::with_capacity(input.len() / 2);  // this doesn’t need mutation testing
-    let mut chars = input.chars();
 
-    while let Some(mut c) = chars.next() {
-        if c == '\\' {
-            if let Some(next_char) = chars.next() {
-                c = next_char;
-            }
-            else {
-                unreachable!("String ends with backslash");
-            }
+    let mut chars = input.chars();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            result.push(c);
+            continue;
         }
 
-        result.push(c);
+        match chars.next() {
+            Some('n')  => result.push('\n'),
+            Some('r')  => result.push('\r'),
+            Some('t')  => result.push('\t'),
+            Some(nc)   => result.push(nc),
+            None       => unreachable!("String ends with backslash"),
+        }
     }
 
     Ok(result.into())
