@@ -92,7 +92,7 @@ pub fn run(mode: RunningMode) -> i32 {
     match mode {
         RunningMode::Run(opts) => {
             let Options { input, output, format, verification, limit } = opts;
-            let source = match input.read() {
+            let source_lines = match input.read() {
                 Ok(p) => p,
                 Err(e) => {
                     eprintln!("{}: {}", input, e);
@@ -100,10 +100,12 @@ pub fn run(mode: RunningMode) -> i32 {
                 }
             };
 
-            let program = match Program::read(&source) {
+            let program = match Program::read(&source_lines) {
                 Ok(p) => p,
-                Err(e) => {
-                    eprintln!("{}:{}:{}: syntax error: {}", input, e.source_pos().line_number, e.source_pos().column_number, e);
+                Err(es) => {
+                    for e in es {
+                        eprintln!("{}:{}:{}: syntax error: {}", input, e.source_pos().line_number, e.source_pos().column_number, e);
+                    }
                     return exits::PROGRAM_ERROR;
                 }
             };
@@ -167,8 +169,10 @@ pub fn run(mode: RunningMode) -> i32 {
                 Ok(_) => {
                     println!("{}: Syntax OK", input);
                 },
-                Err(e) => {
-                    println!("{}:{}: syntax error: {}", input, e.source_pos().line_number, e);
+                Err(es) => {
+                    for e in es {
+                        println!("{}:{}: syntax error: {}", input, e.source_pos().line_number, e);
+                    }
                     return exits::PROGRAM_ERROR;
                 }
             };

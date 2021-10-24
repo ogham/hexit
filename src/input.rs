@@ -2,7 +2,7 @@
 
 use std::fs::File;
 use std::fmt;
-use std::io::{self, Read};
+use std::io::{self, Read, BufRead, BufReader};
 use std::path::PathBuf;
 
 use log::*;
@@ -35,34 +35,43 @@ impl fmt::Display for Input {
 impl Input {
 
     /// Reads the complete Hexit program from the input source, returning it
-    /// as a `String`, or an I/O error if something goes wrong reading it.
-    pub fn read(&self) -> io::Result<String> {
+    /// as a series of strings, or an I/O error if something goes wrong.
+    pub fn read(&self) -> io::Result<Vec<String>> {
         match self {
             Self::Expression(input_string) => {
                 info!("Reading from string");
-                Ok(input_string.clone())
+
+                let lines = input_string.lines().map(|line| line.to_owned()).collect();
+                Ok(lines)
             }
 
             Self::Stdin => {
                 info!("Reading from standard input");
                 let stdin = io::stdin();
-                let mut handle = stdin.lock();
+                let handle = stdin.lock();
 
-                let mut contents = String::new();
-                handle.read_to_string(&mut contents)?;
+                let lines = read_all_lines(handle)?;
                 debug!("Successfully read stdin");
-                Ok(contents)
+                Ok(lines)
             }
 
             Self::File(path) => {
                 info!("Reading from file {:?}", path);
-                let mut file = File::open(path)?;
+                let handle = File::open(path)?;
 
-                let mut contents = String::new();
-                file.read_to_string(&mut contents)?;
+                let lines = read_all_lines(handle)?;
                 debug!("Successfully read file contents");
-                Ok(contents)
+                Ok(lines)
             }
         }
     }
+}
+
+
+/// Reads all the lines from the given `Read`-capable handle, returning them
+/// as a vector and stopping as soon as an I/O error occurs.
+fn read_all_lines(handle: impl Read) -> io::Result<Vec<String>> {
+    let reader = BufReader::new(handle);
+    let lines = reader.lines().collect::<io::Result<_>>()?;
+    Ok(lines)
 }

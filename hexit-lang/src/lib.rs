@@ -52,13 +52,29 @@ pub struct Program<'src> {
 
 impl<'src> Program<'src> {
 
-    /// Reads a Hexit program from a string of Hexit source, returning a valid
-    /// program or a read error.
-    pub fn read(input_source: &'src str) -> Result<Self, read::Error<'src>> {
-        debug!("Reading string -> {:?}", input_source);
+    /// Reads a Hexit program from a series of strings of Hexit source,
+    /// returning a valid program or at least one read error.
+    pub fn read(input_source_lines: &'src [impl AsRef<str>]) -> Result<Self, Vec<read::Error<'src>>> {
+        let mut all_exps = Vec::new();
+        let mut all_errors = Vec::new();
 
-        let exps = read::tokenise_and_parse(input_source)?;
-        Ok(Self { exps })
+        for (line_index, input_line) in input_source_lines.iter().enumerate() {
+            let input_line = input_line.as_ref();
+            debug!("Reading line -> {:?}", input_line);
+
+            let line_number = line_index + 1;
+            match read::tokenise_and_parse(input_line, line_number) {
+                Ok(exps)  => all_exps.extend(exps),
+                Err(e)    => all_errors.push(e),
+            };
+        }
+
+        if all_errors.is_empty() {
+            Ok(Self { exps: all_exps })
+        }
+        else {
+            Err(all_errors)
+        }
     }
 
     /// Runs this Hexit program, returning the vector of bytes that it has

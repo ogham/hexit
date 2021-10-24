@@ -2,7 +2,8 @@ macro_rules! test_eval {
     ($name:ident: $input:expr => $result:expr) => {
         #[test]
         fn $name() {
-            let program = hexit_lang::Program::read($input).expect("Parsing failed");
+            let lines = vec![ $input ];
+            let program = hexit_lang::Program::read(&*lines).expect("Parsing failed");
             let constants = hexit_lang::constants::Table::builtin_set();
 
             let result = program.run(&constants, None).map_err(|e| e.to_string());
