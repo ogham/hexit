@@ -1,0 +1,11 @@
+[[cmd]]
+shell = "hexit erroneous-inputs/unterminated-form.hexit"
+stdout = { empty = true }
+stderr = { file = "outputs/unterminated-form.txt" }
+status = 2
+
+[[cmd]]
+shell = "hexit erroneous-inputs/unterminated-string.hexit"
+stdout = { empty = true }
+stderr = { file = "outputs/unterminated-string.txt" }
+status = 2
