@@ -44,9 +44,9 @@ CRC: 66 BC 3A 25
 Block length: be32[3]
 Block type: "PLTE"
 
-[0] [144] [81]  # a nice green in RGB
+RGB: 66 33 99  # Rebecca Purple
 
-CRC: 63 04 16 EA
+CRC: 96 98 C4 98
 
 
 # ---- IDAT block ----
