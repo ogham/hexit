@@ -1,0 +1,8 @@
+erroneous-inputs/stray-things.hexit:4:0: syntax error: Unpaired hex character "A"
+erroneous-inputs/stray-things.hexit:5:2: syntax error: Unpaired hex character "C"
+erroneous-inputs/stray-things.hexit:6:0: syntax error: Stray character "x"
+erroneous-inputs/stray-things.hexit:7:2: syntax error: Stray character "x"
+erroneous-inputs/stray-things.hexit:8:0: syntax error: Stray symbol "+"
+erroneous-inputs/stray-things.hexit:9:2: syntax error: Stray symbol "+"
+erroneous-inputs/stray-things.hexit:10:0: syntax error: Function name "be16" not followed by arguments
+erroneous-inputs/stray-things.hexit:11:4: syntax error: Stray symbol "+"

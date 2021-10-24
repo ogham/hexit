@@ -1,0 +1,11 @@
+# This erroneous program has various stray bits of syntax floating around that
+# aren’t connected to anything.
+
+A
+ABC
+x
+ABx
++
+AB+
+be16
+be16+

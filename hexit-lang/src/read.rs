@@ -19,7 +19,7 @@ pub fn tokenise_and_parse<'src>(input_line: &'src str, line_number: usize) -> Re
     strip_front_comment(&mut line_tokens);
 
     if let Some(first_invalid_char) = line_tokens.iter().find_map(|t| t.as_stray()) {
-        return Err(Error::UnknownChar(first_invalid_char));
+        return Err(Error::StraySymbol(first_invalid_char));
     }
 
     line_tokens.push(tokens::Token::Whitespace);
@@ -42,7 +42,7 @@ fn strip_front_comment<'src>(line_tokens: &mut Vec<tokens::Token<'src>>) {
 /// A problem that occurred with the user’s input during parsing or lexing.
 #[derive(PartialEq, Debug)]
 pub enum Error<'src> {
-    UnknownChar(pos::Placed<&'src str>),
+    StraySymbol(pos::Placed<&'src str>),
     Lex(lex::Error<'src>),
     Parse(parse::Error<'src>),
 }
@@ -50,7 +50,7 @@ pub enum Error<'src> {
 impl<'src> fmt::Display for Error<'src> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnknownChar(c)  => write!(f, "Unknown character {:?}", c.contents),
+            Self::StraySymbol(c)  => write!(f, "Stray symbol {:?}", c.contents),
             Self::Lex(le)         => le.fmt(f),
             Self::Parse(pe)       => pe.fmt(f),
         }
@@ -60,7 +60,7 @@ impl<'src> fmt::Display for Error<'src> {
 impl<'src> Error<'src> {
     pub fn source_pos(&self) -> &pos::Placed<&'src str> {
         match self {
-            Self::UnknownChar(c)  => c,
+            Self::StraySymbol(c)  => c,
             Self::Lex(le)         => le.source_pos(),
             Self::Parse(pe)       => pe.source_pos(),
         }
@@ -128,7 +128,7 @@ mod test {
     #[test]
     fn weird_nested_form() {
         assert_eq!(tokenise_and_parse("[[:alpha:]]", 6),
-                   Err(Error::UnknownChar("]".at(6, 10))));
+                   Err(Error::StraySymbol("]".at(6, 10))));
     }
 
     // front comment stripping tests

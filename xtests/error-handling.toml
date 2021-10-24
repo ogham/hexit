@@ -17,6 +17,12 @@ stderr = { file = "outputs/invalid-string-escape.txt" }
 status = 2
 
 [[cmd]]
+shell = "hexit erroneous-inputs/stray-things.hexit"
+stdout = { empty = true }
+stderr = { file = "outputs/stray-things.txt" }
+status = 2
+
+[[cmd]]
 shell = "hexit erroneous-inputs/unclosed-function.hexit"
 stdout = { empty = true }
 stderr = { file = "outputs/unclosed-function.txt" }
